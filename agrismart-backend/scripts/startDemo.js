@@ -41,7 +41,40 @@ async function main() {
 
   if (!process.env.MONGODB_URI) {
     const { MongoMemoryServer } = require('mongodb-memory-server');
-    const mongod = await MongoMemoryServer.create();
+    let mongod;
+    try {
+      mongod = await MongoMemoryServer.create();
+    } catch (err) {
+      // The most common real-world failure here is not a bug in this
+      // script — it's that this is the FIRST time mongodb-memory-server
+      // has run on this machine and it needs to download a MongoDB
+      // binary (~70MB) from fastdl.mongodb.org, and that download is
+      // blocked or unreachable (offline, captive/conference wifi,
+      // corporate firewall, demo venue with no internet). After a
+      // successful first download it is cached locally and no further
+      // network access is needed. Surface that clearly instead of a
+      // raw stack trace, and point at the documented escape hatch.
+      // eslint-disable-next-line no-console
+      console.error(
+        [
+          '[DEMO] Could not start the built-in in-memory MongoDB.',
+          '[DEMO] This almost always means this machine could not download the',
+          '[DEMO] MongoDB binary (first run only; it is cached after that).',
+          '[DEMO]',
+          '[DEMO] To fix, either:',
+          '[DEMO]   1) Connect this machine to the internet and re-run `npm run demo`',
+          '[DEMO]      (only the first run needs network access), or',
+          '[DEMO]   2) Point the demo at a real MongoDB instance instead by setting',
+          '[DEMO]      MONGODB_URI in agrismart-backend/.env, e.g.:',
+          '[DEMO]        MONGODB_URI=mongodb://127.0.0.1:27017/agrismart_demo',
+          '[DEMO]      then re-run `npm run demo` (no other code changes needed).',
+          '[DEMO]',
+          '[DEMO] See agrismart-backend/DEMO.md for details.',
+          '[DEMO] Underlying error:',
+        ].join('\n')
+      );
+      throw err;
+    }
     process.env.MONGODB_URI = mongod.getUri('agrismart_demo');
     // eslint-disable-next-line no-console
     console.log('[DEMO] Ephemeral in-memory MongoDB ready (no external database required).');
