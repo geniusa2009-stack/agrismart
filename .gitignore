@@ -1,0 +1,54 @@
+# Root .gitignore — applies repo-wide (patterns without a leading slash
+# match at any depth, so this also covers agrismart-backend/ and
+# agrismart-frontend/ without needing to touch their existing, working
+# per-package .gitignore files).
+#
+# Phase 0 project-safety baseline. Nothing listed here is deleted from
+# disk — these files remain exactly where they are; they are simply not
+# tracked by Git.
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.sw?
+
+# Node
+node_modules/
+npm-debug.log*
+*.log
+coverage/
+
+# Build output
+dist/
+dist-ssr/
+*.local
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Environment files — keep example/test config, exclude anything that
+# could hold real secrets.
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Office temp/lock files (e.g. ".~AgriSmart_Investor_Pitch_Deck.pptx")
+.~*.pptx
+.~*.docx
+.~*.xlsx
+
+# Known cleanup debt (agrismart-frontend/_to_delete_*) — intentionally
+# left on disk per project instructions, just not tracked.
+_to_delete_*/
+
+# Prior-stage backend backup archives — superseded snapshots of the same
+# codebase; kept on disk for reference, not tracked to avoid duplicating
+# large binaries in history.
+agrismart-backend-stage3*.zip
