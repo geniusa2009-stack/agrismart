@@ -4,3 +4,21 @@ npm-debug.log*
 *.log
 .DS_Store
 coverage/
+
+# AI model artifacts (ai/models/artifacts/*.json) are INTENTIONALLY
+# committed, not ignored: each is a small JSON file (learned
+# coefficients, metrics, dataset date ranges, feature version) with no
+# raw telemetry, PII, or secrets, and it is the only record of a given
+# training run's registered status (candidate/validated/active) — see
+# AI_MODEL_CARD.md. Regenerate any of them with `npm run ai:*:train`.
+
+# External-benchmark generated reports and experiment log — regenerate
+# via `npm run bench:run` / `npm run bench:cross`, not committed (pure
+# derived output, regenerated on every run, not part of the tracked
+# model registry).
+ai/external/reports/*.json
+ai/external/experiments/log.jsonl
+
+# Test-only placeholder registry entries written by tests/ai/*/inferenceAndSafety.test.js
+# (never real training output — clearly namespaced, safe to regenerate/delete).
+ai/models/artifacts/*_TESTONLY*.json

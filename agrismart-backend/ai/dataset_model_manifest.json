@@ -1,0 +1,242 @@
+{
+  "generatedAt": "2026-09-11T13:30:00.000Z",
+  "schemaNote": "Machine-readable index of every dataset inspected and every model registered this phase, plus dataset #1's carried-forward state. Human-readable detail lives in the AI_*.md files at the repo root.",
+  "datasets": [
+    {
+      "id": "mendeley-tomato-irrigation-33cngpcrmx-v2",
+      "name": "Dataset on irrigation for Tomato",
+      "source": "Mendeley Data",
+      "doi": "10.17632/33cngpcrmx.2",
+      "rows": 3000,
+      "columns": 14,
+      "role": "modeled",
+      "modeledTarget": "tomato_soil_moisture_estimate",
+      "ingestedFiles": [
+        "ai/external/adapters/pending/tomato_irrigation_dataset.csv"
+      ]
+    },
+    {
+      "id": "evolving-tomato-testbed",
+      "name": "IoT Dataset from an Evolving Tomato Cultivation Testbed",
+      "source": "University of Parma IoT Laboratory / Azienda Sperimentale Stuard, Italy",
+      "doi": null,
+      "doiNote": "unconfirmed for this specific multi-year bundle; see AI_DATASET_INVENTORY.md",
+      "seasons": {
+        "2023": {
+          "used": false,
+          "reason": "non-independent with STUARD dataset (#3) \u2014 same date range and coordinates"
+        },
+        "2024": {
+          "used": true,
+          "role": "primary training + in-season test",
+          "acceptedRecords": 192716,
+          "rejected": 297,
+          "outsideValveWindow": 53187
+        },
+        "2025": {
+          "used": true,
+          "role": "fully external validation (no retraining)"
+        }
+      },
+      "role": "modeled",
+      "modeledTarget": "irrigation_event_next_1h",
+      "ingestedFiles": [
+        "ai/external/adapters/pending/evolving-tomato-testbed/2023/soil2023.csv",
+        "ai/external/adapters/pending/evolving-tomato-testbed/2023/water_valve2023.csv",
+        "ai/external/adapters/pending/evolving-tomato-testbed/2024/soil2024.csv",
+        "ai/external/adapters/pending/evolving-tomato-testbed/2024/valve_controller2024.csv",
+        "ai/external/adapters/pending/evolving-tomato-testbed/2025/soil2025.csv",
+        "ai/external/adapters/pending/evolving-tomato-testbed/2025/valve_controller2025.csv"
+      ]
+    },
+    {
+      "id": "stuard-tomato-irrigation-regimes",
+      "name": "IoT-based Dataset of a Tomato Cultivation Under Different Irrigation Regimes (STUARD)",
+      "source": "University of Parma IoT Laboratory / Azienda Sperimentale Stuard, Italy",
+      "role": "context-only",
+      "reason": "same site/date range as evolving-tomato-testbed 2023 season; no valve/irrigation stream",
+      "modeledTarget": null
+    },
+    {
+      "id": "nine-year-industrial-tomato-agrophysiological",
+      "name": "9-Year Industrial Tomato Agro-physiological Dataset",
+      "role": "inventoried-not-modeled",
+      "reason": "season-level granularity, ~9 independent rows, cannot support a leak-free split",
+      "modeledTarget": null
+    },
+    {
+      "id": "agridatavalue-open-meteo",
+      "name": "AgriDataValue / Open-Meteo environmental dataset",
+      "role": "inventoried-not-modeled",
+      "reason": "no irrigation/valve/tomato-specific signal; different crop context",
+      "modeledTarget": null
+    },
+    {
+      "id": "arnesano-precision-irrigation",
+      "name": "Soil Moisture, Irrigation Actuator and Weather Dataset (Arnesano, Italy, 2025)",
+      "source": "Mendeley Data (manuscript under review; DOI not yet assigned)",
+      "doi": null,
+      "zones": {
+        "1": {
+          "crop": "Tomato (open field)",
+          "role": "primary_training"
+        },
+        "2": {
+          "crop": "Tomato (open field)",
+          "role": "primary_training"
+        },
+        "3": {
+          "crop": "Tomato (pot)",
+          "role": "rejected",
+          "reason": "worst sensor quality of any zone (~59-day flatline, highest EC/pH error-code rate)"
+        },
+        "4": {
+          "crop": "Zucchini",
+          "role": "primary_training"
+        },
+        "5": {
+          "crop": "Blueberry",
+          "role": "validation_cross_crop_no_retraining"
+        }
+      },
+      "role": "modeled",
+      "modeledTarget": "arnesano_soil_moisture_24h_forecast",
+      "ingestedFiles": [
+        "ai/external/adapters/pending/arnesano/merged/dataset_zone_1.csv",
+        "ai/external/adapters/pending/arnesano/merged/dataset_zone_2.csv",
+        "ai/external/adapters/pending/arnesano/merged/dataset_zone_4.csv",
+        "ai/external/adapters/pending/arnesano/merged/dataset_zone_5.csv",
+        "ai/external/adapters/pending/arnesano/events/final_irrigation_events.csv"
+      ]
+    },
+    {
+      "id": "stuard-tomato-irrigation-regimes",
+      "name": "IoT-based Dataset of a Tomato Cultivation Under Different Irrigation Regimes (STUARD)",
+      "role": "rejected",
+      "reason": "non-independent with evolving-tomato-testbed 2023 season; no irrigation/valve stream",
+      "modeledTarget": null
+    },
+    {
+      "id": "nine-year-industrial-tomato-agrophysiological",
+      "name": "9-Year Industrial Tomato Agro-physiological Dataset",
+      "role": "context-only",
+      "reason": "32 experiment-groups (real irrigation dates/volumes, weather, CWSI, yield) \u2014 too few independent groups for a defensible held-out split against this project's current targets",
+      "modeledTarget": null
+    },
+    {
+      "id": "agridatavalue-open-meteo",
+      "name": "AgriDataValue / Open-Meteo weather bundle (BIORO stations + Open-Meteo corn)",
+      "role": "context-only",
+      "reason": "no irrigation/valve/tomato-specific signal; different crop (corn) context",
+      "modeledTarget": null
+    }
+  ],
+  "models": [
+    {
+      "target": "tomato_soil_moisture_estimate",
+      "modelType": "ridge_linear_regression",
+      "status": "candidate",
+      "version": 3,
+      "trainingSampleCount": 2972,
+      "testMetrics": {
+        "mae": 138.9974,
+        "rmse": 162.1843,
+        "r2": -0.01316,
+        "n": 300
+      },
+      "validated": false,
+      "servedEndpoint": "POST /api/v1/ai/soil-moisture-estimate",
+      "artifactPath": "ai/models/artifacts/tomato_soil_moisture_estimate.latest.json"
+    },
+    {
+      "target": "irrigation_event_next_1h",
+      "modelType": "logistic_regression",
+      "status": "candidate",
+      "version": 2,
+      "trainingSampleCount": 21438,
+      "testMetrics2024": {
+        "n": 3216,
+        "rocAuc": 0.2619,
+        "averagePrecision": 0.0015,
+        "baseRate": 0.014328
+      },
+      "externalMetrics2025": {
+        "n": 31137,
+        "rocAuc": 0.3133,
+        "averagePrecision": 0.0041,
+        "baseRate": 0.006102
+      },
+      "validationGate": {
+        "rocAucThreshold": 0.75,
+        "averagePrecisionMultiplier": 3,
+        "requiredOn": [
+          "2024_test",
+          "2025_external"
+        ]
+      },
+      "validated": false,
+      "servedEndpoint": "GET /api/v1/ai/irrigation-event-likelihood/:valveId",
+      "artifactPath": "ai/models/artifacts/irrigation_event_next_1h.latest.json"
+    },
+    {
+      "target": "arnesano_soil_moisture_24h_forecast",
+      "modelType": "ridge_linear_regression",
+      "status": "candidate",
+      "version": 2,
+      "trainingSampleCount": 22722,
+      "testMetrics": {
+        "mae": 0.6372,
+        "rmse": 1.7763,
+        "r2": 0.99269,
+        "n": 3409
+      },
+      "baselineTestMetrics": {
+        "mean": {
+          "r2": -0.09598
+        },
+        "persistence": {
+          "r2": 0.99234
+        }
+      },
+      "crossCropValidationZone5": {
+        "model": {
+          "mae": 6.8818,
+          "rmse": 10.9347,
+          "r2": 0.87653,
+          "n": 9444
+        },
+        "persistenceBaseline": {
+          "r2": 0.88075
+        },
+        "oodFraction": 0.29733
+      },
+      "validationGate": {
+        "mustBeat": [
+          "meanBaseline",
+          "persistenceBaseline"
+        ],
+        "requiredOn": [
+          "test_zones_1_2_4",
+          "zone_5_cross_crop"
+        ],
+        "result": "passed_test_failed_zone5"
+      },
+      "validated": false,
+      "servedEndpoint": "POST /api/v1/ai/arnesano-soil-moisture-forecast",
+      "artifactPath": "ai/models/artifacts/arnesano_soil_moisture_24h_forecast.latest.json"
+    }
+  ],
+  "testSuiteStatus": {
+    "aiSuite": {
+      "command": "npx cross-env NODE_ENV=test jest --config jest.offline.config.js tests/ai --runInBand",
+      "result": "PASS",
+      "suites": 27,
+      "tests": 139
+    },
+    "lint": {
+      "command": "npx eslint ai scripts/ai src/modules/ai tests/ai src/routes/index.js --max-warnings=0",
+      "result": "PASS"
+    },
+    "fullOfflineSuiteNote": "tests/api + tests/integration were also run under the same no-database diagnostic config; pre-existing DB-touching failures in tests/api/auth.test.js are unrelated to this workstream and out of scope (rule 20). Full npm test (with mongodb-memory-server) not run \u2014 no network access in this sandboxed environment, a pre-existing limitation unrelated to this phase's changes."
+  }
+}

@@ -67,6 +67,20 @@ const envSchema = z.object({
   RATE_LIMIT_COMMAND_WINDOW_MS: numberFromString(60 * 1000),
   RATE_LIMIT_COMMAND_MAX: numberFromString(10),
 
+  // Community layer (Overnight Community task, section 11): identity-
+  // scoped (by authenticated userId, never IP — same philosophy as the
+  // IoT limiters above) limits for the actions most exposed to spam/
+  // abuse. Defaults are deliberately generous enough not to block a
+  // real farmer's normal usage while still bounding write volume.
+  RATE_LIMIT_COMMUNITY_WRITE_WINDOW_MS: numberFromString(60 * 1000),
+  RATE_LIMIT_COMMUNITY_WRITE_MAX: numberFromString(20),
+  RATE_LIMIT_COMMUNITY_ENGAGEMENT_WINDOW_MS: numberFromString(60 * 1000),
+  RATE_LIMIT_COMMUNITY_ENGAGEMENT_MAX: numberFromString(60),
+  RATE_LIMIT_COMMUNITY_REPORT_WINDOW_MS: numberFromString(60 * 60 * 1000),
+  RATE_LIMIT_COMMUNITY_REPORT_MAX: numberFromString(15),
+  RATE_LIMIT_TRANSACTION_WINDOW_MS: numberFromString(60 * 1000),
+  RATE_LIMIT_TRANSACTION_MAX: numberFromString(15),
+
   JWT_ACCESS_SECRET: z
     .string()
     .min(16, 'JWT_ACCESS_SECRET must be at least 16 characters.'),

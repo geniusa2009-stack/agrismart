@@ -6,7 +6,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { usePolling } from '../hooks';
-import { Card, Badge, Spinner, EmptyState, timeAgo } from '../components/ui';
+import { Card, Badge, Spinner, EmptyState, ErrorState, ConfirmDialog, ConfirmRow, timeAgo } from '../components/ui';
 import { MetricLineChart } from '../components/charts';
 
 export default function Devices() {
@@ -16,12 +16,27 @@ export default function Devices() {
   const [search, setSearch] = useState('');
   const [adding, setAdding] = useState(false);
   const [newSecret, setNewSecret] = useState(null);
+  const [loadError, setLoadError] = useState('');
+  const [retryTick, setRetryTick] = useState(0);
 
   usePolling(async () => {
-    const data = await api.get(`/dashboard/farms/${activeFarmId}/devices`);
-    setDevices(data);
-    setSelectedId((prev) => (prev && data.some((d) => d.deviceId === prev) ? prev : data[0]?.deviceId || null));
-  }, 5000, [activeFarmId]);
+    try {
+      const data = await api.get(`/dashboard/farms/${activeFarmId}/devices`);
+      setDevices(data);
+      setSelectedId((prev) => (prev && data.some((d) => d.deviceId === prev) ? prev : data[0]?.deviceId || null));
+      setLoadError('');
+    } catch (err) {
+      setLoadError(err.message || 'Could not load devices.');
+    }
+  }, 5000, [activeFarmId, retryTick]);
+
+  if (!devices && loadError) {
+    return (
+      <Card>
+        <ErrorState title="Couldn't load devices" sub={loadError} onRetry={() => setRetryTick((t) => t + 1)} />
+      </Card>
+    );
+  }
 
   if (!devices) return <Spinner label="Loading devices…" />;
 
@@ -41,6 +56,11 @@ export default function Devices() {
           </button>
         }
       >
+        {loadError && (
+          <div className="border-b border-amber-100 bg-amber-50 px-4 py-2 text-[11px] font-semibold text-amber-700">
+            Showing last known data — latest refresh failed ({loadError}).
+          </div>
+        )}
         {adding && (
           <div className="border-b border-slate-50 p-4">
             <AddDeviceForm
@@ -62,6 +82,7 @@ export default function Devices() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search devices…"
+                aria-label="Search devices"
                 className="w-full text-xs text-slate-700 outline-none"
               />
             </div>
@@ -165,20 +186,44 @@ function DeviceDetail({ deviceId }) {
   const [tab, setTab] = useState('overview');
   const [history, setHistory] = useState([]);
   const [commands, setCommands] = useState([]);
+  const [detailError, setDetailError] = useState('');
+  const [detailRetryTick, setDetailRetryTick] = useState(0);
+  const [telemetryError, setTelemetryError] = useState('');
+  const [commandsError, setCommandsError] = useState('');
+  const [tabRetryTick, setTabRetryTick] = useState(0);
 
   usePolling(async () => {
-    const d = await api.get(`/dashboard/devices/${deviceId}`);
-    setDetail(d);
-  }, 5000, [deviceId]);
+    try {
+      const d = await api.get(`/dashboard/devices/${deviceId}`);
+      setDetail(d);
+      setDetailError('');
+    } catch (err) {
+      setDetailError(err.message || 'Could not load this device.');
+    }
+  }, 5000, [deviceId, detailRetryTick]);
 
   useEffect(() => {
     if (tab === 'telemetry') {
-      api.get(`/dashboard/devices/${deviceId}/telemetry?range=24h`).then(setHistory).catch(() => {});
+      setTelemetryError('');
+      api.get(`/dashboard/devices/${deviceId}/telemetry?range=24h`).then(setHistory).catch((err) => {
+        setTelemetryError(err.message || 'Could not load telemetry history.');
+      });
     }
     if (tab === 'commands') {
-      api.get(`/dashboard/devices/${deviceId}/commands`).then(setCommands).catch(() => {});
+      setCommandsError('');
+      api.get(`/dashboard/devices/${deviceId}/commands`).then(setCommands).catch((err) => {
+        setCommandsError(err.message || 'Could not load command history.');
+      });
     }
-  }, [tab, deviceId]);
+  }, [tab, deviceId, tabRetryTick]);
+
+  if (!detail && detailError) {
+    return (
+      <Card>
+        <ErrorState title="Couldn't load this device" sub={detailError} onRetry={() => setDetailRetryTick((t) => t + 1)} />
+      </Card>
+    );
+  }
 
   if (!detail) return <Spinner label="Loading device…" />;
 
@@ -241,7 +286,9 @@ function DeviceDetail({ deviceId }) {
         )}
 
         {tab === 'telemetry' && (
-          history.length ? (
+          telemetryError ? (
+            <ErrorState title="Couldn't load telemetry" sub={telemetryError} onRetry={() => setTabRetryTick((t) => t + 1)} />
+          ) : history.length ? (
             <TelemetryCharts history={history} />
           ) : (
             <EmptyState title="No telemetry yet" />
@@ -249,7 +296,9 @@ function DeviceDetail({ deviceId }) {
         )}
 
         {tab === 'commands' && (
-          commands.length ? (
+          commandsError ? (
+            <ErrorState title="Couldn't load command history" sub={commandsError} onRetry={() => setTabRetryTick((t) => t + 1)} />
+          ) : commands.length ? (
             <div className="flex flex-col gap-2">
               {commands.map((c) => (
                 <div key={c.commandId} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-xs">
@@ -287,6 +336,7 @@ function DeviceSettings({ device }) {
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [secret, setSecret] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null); // 'suspend' | 'revoke' | null
 
   async function run(action, fn) {
     setError('');
@@ -298,6 +348,11 @@ function DeviceSettings({ device }) {
     } finally {
       setBusy('');
     }
+  }
+
+  async function runConfirmed(action, fn) {
+    await run(action, fn);
+    setConfirmAction(null);
   }
 
   return (
@@ -336,7 +391,7 @@ function DeviceSettings({ device }) {
             icon={Ban}
             label="Suspend"
             busy={busy === 'suspend'}
-            onClick={() => run('suspend', () => api.post(`/devices/${device.deviceId}/suspend`, {}))}
+            onClick={() => setConfirmAction('suspend')}
           />
           <ActionButton
             icon={KeyRound}
@@ -354,10 +409,44 @@ function DeviceSettings({ device }) {
             label="Revoke"
             danger
             busy={busy === 'revoke'}
-            onClick={() => run('revoke', () => api.post(`/devices/${device.deviceId}/revoke`, {}))}
+            onClick={() => setConfirmAction('revoke')}
           />
         </div>
       </div>
+
+      {confirmAction === 'suspend' && (
+        <ConfirmDialog
+          title="Suspend this device?"
+          confirmLabel="Suspend device"
+          confirmTone="red"
+          busy={busy === 'suspend'}
+          onCancel={() => setConfirmAction(null)}
+          onConfirm={() => runConfirmed('suspend', () => api.post(`/devices/${device.deviceId}/suspend`, {}))}
+        >
+          <ConfirmRow label="Device" value={device.name} />
+          <div className="mt-1 text-[11px] text-slate-500">
+            A suspended device is rejected on its next heartbeat/telemetry call until reactivated. It will show as
+            offline once its current session expires.
+          </div>
+        </ConfirmDialog>
+      )}
+
+      {confirmAction === 'revoke' && (
+        <ConfirmDialog
+          title="Revoke this device?"
+          confirmLabel="Revoke device"
+          confirmTone="red"
+          busy={busy === 'revoke'}
+          onCancel={() => setConfirmAction(null)}
+          onConfirm={() => runConfirmed('revoke', () => api.post(`/devices/${device.deviceId}/revoke`, {}))}
+        >
+          <ConfirmRow label="Device" value={device.name} />
+          <div className="mt-1 text-[11px] text-red-600">
+            This permanently invalidates the device's current secret. The device cannot authenticate again unless
+            you rotate its secret and reconfigure the physical hardware with the new value.
+          </div>
+        </ConfirmDialog>
+      )}
     </div>
   );
 }

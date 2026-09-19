@@ -52,3 +52,28 @@ _to_delete_*/
 # codebase; kept on disk for reference, not tracked to avoid duplicating
 # large binaries in history.
 agrismart-backend-stage3*.zip
+
+# Raw third-party AI training datasets (Arnesano field-trial data,
+# Evolving Tomato Testbed, Mendeley tomato-irrigation dataset) — these
+# are real research data downloaded from external sources whose
+# redistribution license is unconfirmed (see DATASETS.md and
+# AI_DATASET_INVENTORY.md: the Mendeley dataset's license is explicitly
+# "not specified — treat as all-rights-reserved until verified", and
+# the other two reference a LICENSE.txt from the original publisher
+# that was never captured in this repo). Excluded from public
+# distribution per an explicit decision on 2026-09-19; the code that
+# ingests/trains on them (ai/external/adapters/*.js,
+# ai/training/**/*.js) and the small hand-built structural fixtures in
+# ai/external/adapters/fixtures/ are NOT affected by this rule and
+# remain tracked. Re-download the originals from the URLs/DOIs in
+# DATASETS.md to reproduce training locally.
+agrismart-backend/ai/external/adapters/pending/**/*.csv
+
+# Internal development-process logs (AI-assisted engineering session
+# handoffs/audits) — historically useful locally but not appropriate
+# for a public engineering repo (they narrate development sessions
+# rather than document the system). Kept on disk, not tracked.
+AGENTS.md
+AGRISMART_HANDOFF_AUDIT.md
+FINAL_REPORT.md
+OVERNIGHT_COMMUNITY_REPORT.md

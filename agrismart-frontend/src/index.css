@@ -22,3 +22,16 @@ body {
   background: #cfe8db;
   border-radius: 999px;
 }
+
+/* Subtle entrance motion for the login screen only (brand panel copy,
+   form). Kept to one small, restrained keyframe — no flashy animation. */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

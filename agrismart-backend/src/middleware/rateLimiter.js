@@ -72,6 +72,16 @@ function commandKey(req) {
   return `${userId}:${targetDeviceId}`;
 }
 
+/**
+ * Community layer: keyed by the AUTHENTICATED user id only (never IP,
+ * never anything from req.body) — every route these limiters guard
+ * runs after `authenticate`, so req.user is always trusted, verified
+ * identity by the time this key generator runs.
+ */
+function userKey(req) {
+  return req.user ? `user:${req.user.id}` : `ip:${ipKey(req)}`;
+}
+
 function rateLimitExceededHandler(req, res, next) {
   next(
     new ApiError(429, 'Too many requests. Please slow down and try again shortly.', {
@@ -112,10 +122,31 @@ const authLimiter = createLimiter({ ...config.rateLimit.auth, keyGenerator: auth
 const deviceIngestLimiter = createLimiter({ ...config.rateLimit.device, keyGenerator: deviceKey });
 const commandLimiter = createLimiter({ ...config.rateLimit.command, keyGenerator: commandKey });
 
+// Community layer additions (Overnight Community task, section 11):
+// three tiers by abuse sensitivity, all userId-keyed.
+//   - communityWriteLimiter: creating posts/equipment/services/listings
+//     (content that persists and is visible to others).
+//   - communityEngagementLimiter: comments/reactions/follows (higher
+//     natural frequency, lower individual impact).
+//   - communityReportLimiter: abuse reports — tight window, since a
+//     report-spam campaign against a legitimate user/listing is itself
+//     a form of abuse.
+//   - transactionLimiter: rental/service requests and status-changing
+//     actions on them — moderate, these are deliberate real-world
+//     actions, not idle browsing.
+const communityWriteLimiter = createLimiter({ ...config.rateLimit.communityWrite, keyGenerator: userKey });
+const communityEngagementLimiter = createLimiter({ ...config.rateLimit.communityEngagement, keyGenerator: userKey });
+const communityReportLimiter = createLimiter({ ...config.rateLimit.communityReport, keyGenerator: userKey });
+const transactionLimiter = createLimiter({ ...config.rateLimit.transaction, keyGenerator: userKey });
+
 module.exports = {
   publicApiLimiter,
   authLimiter,
   deviceIngestLimiter,
   commandLimiter,
+  communityWriteLimiter,
+  communityEngagementLimiter,
+  communityReportLimiter,
+  transactionLimiter,
   normalizeIp, // exported for unit testing
 };

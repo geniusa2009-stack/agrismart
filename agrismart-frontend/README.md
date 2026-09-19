@@ -1,16 +1,33 @@
-# React + Vite
+# AgriSmart frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React 19 + Vite + Tailwind CSS. See the [root README](../README.md) for the
+full project overview, quick-start (demo and full-dev paths), environment
+variables, and product/architecture context — this file only covers the
+frontend package itself.
 
-Currently, two official plugins are available:
+## Local development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev     # http://localhost:5173
+```
 
-## React Compiler
+`VITE_API_BASE_URL` in `.env` must point at wherever the backend is actually
+running (see the root README's "Ports" section) — `.env` here already points
+at `http://localhost:5001/api/v1` to match this repo's backend `.env`.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Scripts
 
-## Expanding the Oxlint configuration
+```bash
+npm run dev       # Vite dev server
+npm run build     # production build
+npm run preview   # preview a production build locally
+npm run lint      # oxlint
+npm run test:e2e  # Playwright end-to-end tests (requires a running backend + frontend)
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Brand assets
+
+See [`BRAND.md`](BRAND.md) for the color tokens and logo usage rules. The
+AgriSmart logo (`public/agrismart-logo.png`) is a fixed brand asset — used
+as-is, never recreated as SVG or replaced.

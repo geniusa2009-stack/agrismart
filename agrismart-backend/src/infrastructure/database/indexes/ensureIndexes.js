@@ -33,7 +33,46 @@ const DeviceCommand = require('../../../modules/commands/deviceCommand.model');
 const Valve = require('../../../modules/irrigation/valve.model');
 const IrrigationEvent = require('../../../modules/irrigation/irrigationEvent.model');
 
-const MODELS = [User, Farm, Device, RefreshToken, TelemetryIdempotencyKey, DeviceCommand, Valve, IrrigationEvent];
+// Agricultural Community + Marketplace layer (Overnight Community task).
+const UserProfile = require('../../../modules/community/userProfile.model');
+const Post = require('../../../modules/community/post.model');
+const Comment = require('../../../modules/community/comment.model');
+const Reaction = require('../../../modules/community/reaction.model');
+const Follow = require('../../../modules/community/follow.model');
+const CommunityReport = require('../../../modules/moderation/report.model');
+const Notification = require('../../../modules/notifications/notification.model');
+const Equipment = require('../../../modules/equipment/equipment.model');
+const RentalRequest = require('../../../modules/equipment/rentalRequest.model');
+const AgriculturalService = require('../../../modules/services/agriculturalService.model');
+const ServiceRequest = require('../../../modules/services/serviceRequest.model');
+const MarketplaceListing = require('../../../modules/marketplace/marketplaceListing.model');
+const SavedItem = require('../../../modules/marketplace/savedItem.model');
+const Review = require('../../../modules/trust/review.model');
+
+const MODELS = [
+  User,
+  Farm,
+  Device,
+  RefreshToken,
+  TelemetryIdempotencyKey,
+  DeviceCommand,
+  Valve,
+  IrrigationEvent,
+  UserProfile,
+  Post,
+  Comment,
+  Reaction,
+  Follow,
+  CommunityReport,
+  Notification,
+  Equipment,
+  RentalRequest,
+  AgriculturalService,
+  ServiceRequest,
+  MarketplaceListing,
+  SavedItem,
+  Review,
+];
 
 async function ensureIndexes() {
   await connectDB();

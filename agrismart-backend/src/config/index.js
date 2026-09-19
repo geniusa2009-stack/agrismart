@@ -57,6 +57,19 @@ const config = {
     auth: { windowMs: env.RATE_LIMIT_AUTH_WINDOW_MS, max: env.RATE_LIMIT_AUTH_MAX },
     device: { windowMs: env.RATE_LIMIT_DEVICE_WINDOW_MS, max: env.RATE_LIMIT_DEVICE_MAX },
     command: { windowMs: env.RATE_LIMIT_COMMAND_WINDOW_MS, max: env.RATE_LIMIT_COMMAND_MAX },
+    communityWrite: {
+      windowMs: env.RATE_LIMIT_COMMUNITY_WRITE_WINDOW_MS,
+      max: env.RATE_LIMIT_COMMUNITY_WRITE_MAX,
+    },
+    communityEngagement: {
+      windowMs: env.RATE_LIMIT_COMMUNITY_ENGAGEMENT_WINDOW_MS,
+      max: env.RATE_LIMIT_COMMUNITY_ENGAGEMENT_MAX,
+    },
+    communityReport: {
+      windowMs: env.RATE_LIMIT_COMMUNITY_REPORT_WINDOW_MS,
+      max: env.RATE_LIMIT_COMMUNITY_REPORT_MAX,
+    },
+    transaction: { windowMs: env.RATE_LIMIT_TRANSACTION_WINDOW_MS, max: env.RATE_LIMIT_TRANSACTION_MAX },
   },
 
   jwt: {

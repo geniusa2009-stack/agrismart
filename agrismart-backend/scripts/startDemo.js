@@ -39,9 +39,9 @@ async function main() {
   // eslint-disable-next-line no-console
   console.log('[DEMO] Starting AgriSmart demo mode (simulated device, ephemeral in-memory database)...');
 
+  let mongod = null;
   if (!process.env.MONGODB_URI) {
     const { MongoMemoryServer } = require('mongodb-memory-server');
-    let mongod;
     try {
       mongod = await MongoMemoryServer.create();
     } catch (err) {
@@ -79,6 +79,10 @@ async function main() {
     // eslint-disable-next-line no-console
     console.log('[DEMO] Ephemeral in-memory MongoDB ready (no external database required).');
 
+    // Safety-net only: the happy path below always stops mongod
+    // explicitly after the bounded simulation finishes. This just
+    // guards against an unexpected process exit (e.g. Ctrl+C) leaving
+    // the ephemeral binary's temp files behind.
     process.on('exit', () => {
       mongod.stop().catch(() => {});
     });
@@ -87,10 +91,44 @@ async function main() {
   // Required only now, AFTER env vars above are set — config/env.js
   // reads process.env at require-time.
   const { startServer } = require('../src/server');
-  await startServer();
+  const { disconnectDB } = require('../src/infrastructure/database/mongoose');
+  const server = await startServer();
 
   const { runDemoSimulation } = require('./demoSimulator');
-  await runDemoSimulation();
+  const result = await runDemoSimulation();
+
+  // The demo is now bounded (requirement: finite run, ~1 irrigation
+  // cycle) — once runDemoSimulation() returns, whether it passed or
+  // hit its tick/duration limit, shut everything down cleanly instead
+  // of leaving the process hanging or relying on Ctrl+C.
+  // eslint-disable-next-line no-console
+  console.log('[DEMO] Simulation finished. Shutting down cleanly...');
+
+  await new Promise((resolve) => server.close(() => resolve()));
+  // eslint-disable-next-line no-console
+  console.log('[DEMO] HTTP server closed.');
+
+  await disconnectDB();
+  // eslint-disable-next-line no-console
+  console.log('[DEMO] Database connection closed.');
+
+  if (mongod) {
+    await mongod.stop().catch(() => {});
+    // eslint-disable-next-line no-console
+    console.log('[DEMO] In-memory MongoDB stopped.');
+  }
+
+  if (result.passed) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[DEMO] Final summary: PASS — one full irrigation cycle completed in ${result.ticks} ticks / ${result.elapsedSeconds.toFixed(1)}s.`
+    );
+    process.exit(0);
+  } else {
+    // eslint-disable-next-line no-console
+    console.error(`[DEMO] Final summary: FAILED — ${result.reason}`);
+    process.exit(1);
+  }
 }
 
 main().catch((err) => {

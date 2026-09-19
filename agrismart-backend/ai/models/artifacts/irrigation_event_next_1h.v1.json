@@ -1,0 +1,217 @@
+{
+  "modelName": "irrigation_event_next_1h-logistic_regression",
+  "version": 1,
+  "trainingTimestamp": "2026-09-11T10:16:50.695Z",
+  "createdAt": "2026-09-11T10:16:50.695Z",
+  "featureVersion": "v1",
+  "dataSource": "external",
+  "datasetIds": [
+    "evolving-tomato-testbed-2024",
+    "evolving-tomato-testbed-2025"
+  ],
+  "evaluationMethod": "chronological-split-2024-plus-external-2025-season-validation",
+  "datasetRange": {
+    "from": "2023-06-06T14:57:15.025Z",
+    "to": "2024-09-23T12:16:47.331Z",
+    "sampleCount": 30302
+  },
+  "trainingSampleCount": 30302,
+  "metrics": {
+    "n": 4546,
+    "confusionMatrix": {
+      "tp": 0,
+      "tn": 4534,
+      "fp": 0,
+      "fn": 12
+    },
+    "accuracy": 0.9973603167619886,
+    "precision": null,
+    "recall": 0,
+    "f1": null,
+    "rocAuc": 0.0847,
+    "averagePrecision": 0.0015
+  },
+  "baselineMetrics": {
+    "baseRate2024": 0.00801470934892273,
+    "ablationWithoutIrrigationHistory": {
+      "n": 4546,
+      "confusionMatrix": {
+        "tp": 0,
+        "tn": 4534,
+        "fp": 0,
+        "fn": 12
+      },
+      "accuracy": 0.9973603167619886,
+      "precision": null,
+      "recall": 0,
+      "f1": null,
+      "rocAuc": 0.8252,
+      "averagePrecision": 0.0091
+    },
+    "externalValidation2025": {
+      "n": 32172,
+      "confusionMatrix": {
+        "tp": 0,
+        "tn": 31992,
+        "fp": 0,
+        "fn": 180
+      },
+      "accuracy": 0.9944050727340544,
+      "precision": null,
+      "recall": 0,
+      "f1": null,
+      "rocAuc": 0.2508,
+      "averagePrecision": 0.0035
+    },
+    "baseRate2025": 0.005594927265945543
+  },
+  "modelType": "logistic_regression",
+  "target": "irrigation_event_next_1h",
+  "hyperparameters": {
+    "epochs": 300,
+    "learningRate": 0.3,
+    "l2": 1
+  },
+  "status": "candidate",
+  "modelParams": {
+    "weights": [
+      0.0005280230369791039,
+      0.0003537846636958648,
+      0.00013800929710091706,
+      0.00021174742131972765,
+      0.0002494891341774569,
+      0.0004006686914030739,
+      0.0007024538531282646,
+      0.00005682096342639958,
+      0.00047769156660869684,
+      0.005026276945719598,
+      0,
+      0.0012685280222443738,
+      0.002036590375223725,
+      0.003829372274185741,
+      -0.0028050023374658044,
+      0.0003791485070869922
+    ],
+    "bias": -4.127706809732537,
+    "imputationMeans": [
+      22.298521521851793,
+      22.346800245734944,
+      22.33463362580029,
+      22.3129619047619,
+      -0.036184962903452966,
+      22.186443354863286,
+      19.760349347037057,
+      25.436517373061402,
+      0.009519999999999883,
+      24.940290415350486,
+      0,
+      42.51019471488149,
+      3.854698976945947,
+      14.934160577058858,
+      11.515722973928622,
+      3.0057045872424686
+    ],
+    "standardizeMean": [
+      22.298521521851793,
+      22.34680024573496,
+      22.334633625800347,
+      22.31296190476184,
+      -0.03618496290345298,
+      22.186443354863286,
+      19.760349347037057,
+      25.436517373061402,
+      0.009519999999999924,
+      24.940290415350486,
+      0,
+      42.51019471488055,
+      3.854698976945947,
+      14.934160577058858,
+      11.515722973928622,
+      3.0057045872424686
+    ],
+    "standardizeStd": [
+      10.510254690657009,
+      10.468094397418376,
+      10.351331088607028,
+      9.331022721288436,
+      6.4503793810332395,
+      8.949652309694276,
+      8.032293131211373,
+      18.53383524100346,
+      0.9271206665060419,
+      2.027742943766992,
+      1,
+      25.18137379290754,
+      23.64773520287098,
+      46.71963375000392,
+      6.926826835388511,
+      1.948445787177666
+    ],
+    "epochs": 300,
+    "learningRate": 0.3,
+    "l2": 1,
+    "trainingFeatureRanges": {
+      "soilMoisturePercent": {
+        "min": 0,
+        "max": 655.35
+      },
+      "soilMoistureLag1h": {
+        "min": 0,
+        "max": 655.35
+      },
+      "soilMoistureLag3h": {
+        "min": 0,
+        "max": 655.35
+      },
+      "soilMoistureLag6h": {
+        "min": 0,
+        "max": 63.01
+      },
+      "moistureChange1h": {
+        "min": -635.98,
+        "max": 636.19
+      },
+      "moistureRollingAvg3h": {
+        "min": 0,
+        "max": 73.2
+      },
+      "moistureRollingMin6h": {
+        "min": 0,
+        "max": 49.09
+      },
+      "moistureRollingMax6h": {
+        "min": 0,
+        "max": 655.35
+      },
+      "moistureTrendPerHour": {
+        "min": -6.77,
+        "max": 105.71
+      },
+      "temperatureCelsius": {
+        "min": -0.1,
+        "max": 50.3
+      },
+      "soilSalinityPpt": null,
+      "hoursSinceLastIrrigation": {
+        "min": 0.02,
+        "max": 261.25
+      },
+      "irrigationMinutesLast6h": {
+        "min": 0,
+        "max": 300.02
+      },
+      "irrigationMinutesLast24h": {
+        "min": 0,
+        "max": 424.65
+      },
+      "hourOfDay": {
+        "min": 0,
+        "max": 23
+      },
+      "dayOfWeek": {
+        "min": 0,
+        "max": 6
+      }
+    }
+  }
+}

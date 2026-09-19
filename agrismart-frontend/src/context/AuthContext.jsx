@@ -38,6 +38,16 @@ export function AuthProvider({ children }) {
     return data;
   }, [loadSession]);
 
+  // Uses the existing POST /auth/register endpoint — same response
+  // shape as /auth/login ({ user, accessToken, refreshToken }), so the
+  // post-register flow is identical to logging in.
+  const register = useCallback(async ({ email, password, fullName }) => {
+    const data = await api.post('/auth/register', { email, password, fullName });
+    setToken(data.accessToken);
+    await loadSession();
+    return data;
+  }, [loadSession]);
+
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
@@ -89,6 +99,7 @@ export function AuthProvider({ children }) {
         setActiveFarmId,
         loading,
         login,
+        register,
         logout,
         refreshFarms,
         createFarm,

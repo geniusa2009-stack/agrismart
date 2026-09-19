@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
-import { Card, Spinner, EmptyState } from '../components/ui';
+import { Card, Spinner, EmptyState, ErrorState } from '../components/ui';
 import { MoistureAreaChart, MetricLineChart } from '../components/charts';
 
 const RANGES = [
@@ -17,19 +17,52 @@ export default function Analytics() {
   const [deviceId, setDeviceId] = useState(null);
   const [range, setRange] = useState('24h');
   const [history, setHistory] = useState(null);
+  const [devicesError, setDevicesError] = useState('');
+  const [devicesRetryTick, setDevicesRetryTick] = useState(0);
+  const [historyError, setHistoryError] = useState('');
+  const [historyRetryTick, setHistoryRetryTick] = useState(0);
 
   useEffect(() => {
-    api.get(`/dashboard/farms/${activeFarmId}/devices`).then((data) => {
-      setDevices(data);
-      setDeviceId((prev) => prev || data[0]?.deviceId || null);
-    });
-  }, [activeFarmId]);
+    let cancelled = false;
+    setDevicesError('');
+    api.get(`/dashboard/farms/${activeFarmId}/devices`)
+      .then((data) => {
+        if (cancelled) return;
+        setDevices(data);
+        setDeviceId((prev) => prev || data[0]?.deviceId || null);
+      })
+      .catch((err) => {
+        if (!cancelled) setDevicesError(err.message || 'Could not load devices.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeFarmId, devicesRetryTick]);
 
   useEffect(() => {
     if (!deviceId) return;
+    let cancelled = false;
     setHistory(null);
-    api.get(`/dashboard/devices/${deviceId}/telemetry?range=${range}`).then(setHistory);
-  }, [deviceId, range]);
+    setHistoryError('');
+    api.get(`/dashboard/devices/${deviceId}/telemetry?range=${range}`)
+      .then((data) => {
+        if (!cancelled) setHistory(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setHistoryError(err.message || 'Could not load telemetry.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [deviceId, range, historyRetryTick]);
+
+  if (!devices && devicesError) {
+    return (
+      <Card title="Telemetry Analytics">
+        <ErrorState title="Couldn't load devices" sub={devicesError} onRetry={() => setDevicesRetryTick((t) => t + 1)} />
+      </Card>
+    );
+  }
 
   if (!devices) return <Spinner label="Loading analytics…" />;
   if (devices.length === 0) return <EmptyState title="No devices yet" />;
@@ -41,6 +74,7 @@ export default function Analytics() {
         <select
           value={deviceId || ''}
           onChange={(e) => setDeviceId(e.target.value)}
+          aria-label="Select device"
           className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600"
         >
           {devices.map((d) => (
@@ -63,7 +97,9 @@ export default function Analytics() {
         ))}
       </div>
 
-      {!history ? (
+      {historyError ? (
+        <ErrorState title="Couldn't load telemetry" sub={historyError} onRetry={() => setHistoryRetryTick((t) => t + 1)} />
+      ) : !history ? (
         <Spinner label="Loading readings…" />
       ) : history.length === 0 ? (
         <EmptyState title="No telemetry in this range" sub="Run npm run demo to generate simulated readings." />
@@ -80,7 +116,7 @@ export default function Analytics() {
             </div>
             <div>
               <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">EC / Salinity (dS/m)</div>
-              <MetricLineChart data={history} dataKey="soilSalinityPpt" unit=" dS/m" color="#0ea5e9" />
+              <MetricLineChart data={history} dataKey="soilSalinityPpt" unit=" dS/m" color="#17ada6" />
             </div>
           </div>
         </div>

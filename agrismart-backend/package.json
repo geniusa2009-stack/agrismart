@@ -16,7 +16,16 @@
     "test:watch": "cross-env NODE_ENV=test jest --runInBand --watch",
     "ensure-indexes": "node src/infrastructure/database/indexes/ensureIndexes.js",
     "demo": "node scripts/startDemo.js",
-    "test:offline": "cross-env NODE_ENV=test jest --config jest.offline.config.js"
+    "test:offline": "cross-env NODE_ENV=test jest --config jest.offline.config.js",
+    "ai:prepare": "node scripts/ai/prepare.js",
+    "ai:train": "node scripts/ai/train.js",
+    "ai:evaluate": "node scripts/ai/evaluate.js",
+    "ai:predict": "node scripts/ai/predict.js",
+    "bench:run": "node ai/external/benchmark/runBenchmark.js",
+    "bench:cross": "node ai/external/benchmark/crossDatasetReport.js",
+    "ai:tomato:train": "node ai/training/tomato/train.js",
+    "ai:evolvingTomato:train": "node ai/training/evolvingTomato/train.js",
+    "ai:arnesano:train": "node ai/training/arnesano/train.js"
   },
   "keywords": [
     "agrismart",

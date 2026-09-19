@@ -18,6 +18,17 @@ const commandsRoutes = require('../modules/commands/commands.routes');
 const irrigationRoutes = require('../modules/irrigation/irrigation.routes');
 const dashboardRoutes = require('../modules/dashboard/dashboard.routes');
 const usersRoutes = require('../modules/users/users.routes');
+const aiRoutes = require('../modules/ai/ai.routes');
+
+// Agricultural Community + Marketplace layer (Overnight Community task).
+const communityRoutes = require('../modules/community/community.routes');
+const moderationRoutes = require('../modules/moderation/moderation.routes');
+const notificationsRoutes = require('../modules/notifications/notifications.routes');
+const equipmentRoutes = require('../modules/equipment/equipment.routes');
+const rentalsRoutes = require('../modules/equipment/rentals.routes');
+const servicesRoutes = require('../modules/services/services.routes');
+const serviceRequestsRoutes = require('../modules/services/serviceRequests.routes');
+const marketplaceRoutes = require('../modules/marketplace/marketplace.routes');
 
 const router = express.Router();
 
@@ -32,6 +43,16 @@ apiV1.use('/commands', commandsRoutes);
 apiV1.use('/irrigation', irrigationRoutes);
 apiV1.use('/dashboard', dashboardRoutes);
 apiV1.use('/users', usersRoutes);
+apiV1.use('/ai', aiRoutes);
+
+apiV1.use('/community', communityRoutes);
+apiV1.use('/moderation', moderationRoutes);
+apiV1.use('/notifications', notificationsRoutes);
+apiV1.use('/equipment', equipmentRoutes);
+apiV1.use('/rentals', rentalsRoutes);
+apiV1.use('/services', servicesRoutes);
+apiV1.use('/service-requests', serviceRequestsRoutes);
+apiV1.use('/marketplace', marketplaceRoutes);
 
 router.use('/api/v1', apiV1);
 

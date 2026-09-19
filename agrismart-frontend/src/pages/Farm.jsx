@@ -89,7 +89,7 @@ export default function Farm() {
         </Card>
         <Card title="Valves">
           <div className="flex items-center gap-2 text-2xl font-extrabold text-slate-800">
-            <Droplets size={20} className="text-sky-500" /> {summary.valves.length}
+            <Droplets size={20} className="text-accent-500" /> {summary.valves.length}
           </div>
           <div className="mt-1 text-xs text-slate-400">
             {summary.valves.filter((v) => v.commandedState === 'open').length} currently open

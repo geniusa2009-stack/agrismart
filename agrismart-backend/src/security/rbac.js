@@ -17,6 +17,15 @@ const ROLES = Object.freeze({
   FARMER: 'farmer',
   AGRONOMIST: 'agronomist',
   TECHNICIAN: 'technician',
+  // Community-scope-only staff role (Community layer, section 27):
+  // can act on reports/moderation actions across posts, comments,
+  // equipment, services, and marketplace listings, but is NOT granted
+  // any elevated rank in the IoT/farm ownership hierarchy below — see
+  // isCommunityStaff(), which is the ONLY place this role is checked.
+  // Deliberately excluded from ROLE_HIERARCHY so it can never
+  // accidentally satisfy an isAtLeast(role, ROLES.ADMIN) farm/device
+  // check via rank comparison.
+  MODERATOR: 'moderator',
   ADMIN: 'admin',
   SUPER_ADMIN: 'super_admin',
 });
@@ -116,4 +125,23 @@ function isPrincipalAuthorizedForFarm(principal, farm) {
   return false;
 }
 
-module.exports = { ROLES, hasRole, isAtLeast, ownsFarmResource, isPrincipalAuthorizedForFarm };
+/**
+ * Community-layer moderation authority ONLY (never farm/device/IoT
+ * authority — that stays exclusively on isAtLeast/ownsFarmResource
+ * above). True for the dedicated MODERATOR role and for platform admins
+ * (admin/super_admin), who retain their existing staff override.
+ * @param {string} role
+ * @returns {boolean}
+ */
+function isCommunityStaff(role) {
+  return role === ROLES.MODERATOR || isAtLeast(role, ROLES.ADMIN);
+}
+
+module.exports = {
+  ROLES,
+  hasRole,
+  isAtLeast,
+  ownsFarmResource,
+  isPrincipalAuthorizedForFarm,
+  isCommunityStaff,
+};
