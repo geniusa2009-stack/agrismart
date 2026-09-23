@@ -58,8 +58,8 @@ describe('POST /api/v1/ai/copilot/:valveId/analyze', () => {
       .set('Authorization', `Bearer ${accessToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe('insufficient_data');
-    expect(res.body.source).toBe('gemini');
+    expect(res.body.data.status).toBe('insufficient_data');
+    expect(res.body.data.source).toBe('gemini');
   });
 
   test('a farm owner cannot analyze a valve belonging to a different farm/owner (cross-farm isolation, 404 not 403 — anti-IDOR)', async () => {

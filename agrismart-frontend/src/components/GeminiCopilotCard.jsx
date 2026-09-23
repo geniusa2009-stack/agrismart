@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Card, Badge } from './ui';
 import { api } from '../lib/api';
 import { translateApiError } from '../i18n/errorMessages';
@@ -55,8 +55,8 @@ export default function GeminiCopilotCard({ valveId, deviceOnline }) {
     <Card>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-100 text-accent-700">
-            <Sparkles size={16} />
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white ring-1 ring-accent-100">
+            <img src="/agrismart-mark.png" alt="" className="h-6 w-6 object-contain" />
           </div>
           <div>
             <div className="text-sm font-extrabold text-slate-800">{t('geminiCopilot.title')}</div>

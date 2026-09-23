@@ -243,7 +243,7 @@ const ar = {
     close: 'إغلاق',
     inputPlaceholder: 'اكتب سؤالك…',
     send: 'إرسال',
-    welcomeGreeting: 'أهلاً بيك 👋',
+    welcomeGreeting: 'أهلاً بيك',
     welcomeIntro: 'أنا مساعد AgriSmart.',
     welcomeBody: 'اسألني عن أرضك، الري، الحساسات، أو أي مشكلة زراعية.',
     quickActions: {
@@ -277,7 +277,7 @@ const ar = {
   },
   aiInsight: {
     title: 'مساعد AgriSmart',
-    farmDecisionEyebrow: '🤖 قرار AgriSmart',
+    farmDecisionEyebrow: 'قرار AgriSmart',
     devModelBadge: 'نموذج تجريبي',
     devModelTooltipDefault: 'تم تدريبه على بيانات تطوير اصطناعية',
     unavailableMessage: 'لا توجد بيانات كافية لإصدار توصية موثوقة الآن.',
@@ -329,7 +329,7 @@ const ar = {
     goodAfternoon: 'مساء الخير',
     goodEvening: 'مساء الخير',
     yourFarm: 'مزرعتك',
-    farmStatusEyebrow: '🌱 حالة الأرض',
+    farmStatusEyebrow: 'حالة الأرض',
     locationNotSet: 'الموقع غير محدد',
     allSystemsOperational: 'كل الأنظمة تعمل بشكل طبيعي',
     issues: '{{count}} مشكلة/مشكلات',

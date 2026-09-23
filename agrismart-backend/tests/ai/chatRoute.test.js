@@ -67,8 +67,8 @@ describe('POST /api/v1/ai/chat', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ message: 'أروي ولا لأ؟', farmId, context: 'irrigation', locale: 'ar-eg' });
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe('unavailable');
-    expect(res.body.source).toBe('gemini');
+    expect(res.body.data.status).toBe('unavailable');
+    expect(res.body.data.source).toBe('gemini');
   });
 
   test('a user cannot chat about a farm belonging to someone else (cross-farm isolation, 404 not 403 — anti-IDOR)', async () => {

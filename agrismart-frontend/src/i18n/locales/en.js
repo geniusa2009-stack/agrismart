@@ -236,7 +236,7 @@ const en = {
     close: 'Close',
     inputPlaceholder: 'Type your question…',
     send: 'Send',
-    welcomeGreeting: 'Hi there 👋',
+    welcomeGreeting: 'Hi there',
     welcomeIntro: "I'm the AgriSmart assistant.",
     welcomeBody: 'Ask me about your farm, irrigation, sensors, or any crop issue.',
     quickActions: {
@@ -270,7 +270,7 @@ const en = {
   },
   aiInsight: {
     title: 'AgriSmart Assistant',
-    farmDecisionEyebrow: '🤖 AgriSmart decision',
+    farmDecisionEyebrow: 'AgriSmart decision',
     devModelBadge: 'dev model',
     devModelTooltipDefault: 'Trained on synthetic development data',
     unavailableMessage: 'Not enough data yet to issue a reliable recommendation.',
@@ -322,7 +322,7 @@ const en = {
       community: 'Community',
     },
     yourFarm: 'Your Farm',
-    farmStatusEyebrow: '🌱 Farm status',
+    farmStatusEyebrow: 'Farm status',
     locationNotSet: 'Location not set',
     allSystemsOperational: 'All Systems Operational',
     issues: '{{count}} Issue(s)',

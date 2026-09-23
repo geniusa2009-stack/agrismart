@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Sparkles, X, Send, Loader2, Trash2 } from 'lucide-react';
+import { X, Send, Loader2, Trash2 } from 'lucide-react';
 import { useLocale } from '../i18n/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
@@ -180,7 +180,7 @@ export default function GlobalChatWidget() {
         aria-expanded={open}
         className="fixed bottom-20 end-4 z-40 flex items-center gap-2 rounded-full bg-brand-600 px-4 py-3 text-sm font-bold text-white shadow-decision transition-transform hover:scale-105 hover:bg-brand-700 active:scale-95 md:bottom-6 md:end-6"
       >
-        <Sparkles size={18} />
+        <img src="/agrismart-mark.png" alt="" className="h-5 w-5 object-contain" />
         <span className="hidden sm:inline">{t('globalChat.buttonLabel')}</span>
       </button>
 

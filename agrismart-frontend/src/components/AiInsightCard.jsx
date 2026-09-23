@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sparkles, ChevronDown, Bot } from 'lucide-react';
+import { Sparkles, ChevronDown } from 'lucide-react';
 import { Badge, DecisionCard } from './ui';
 import { useLocale } from '../i18n/LocaleContext';
 
@@ -68,7 +68,11 @@ export default function AiInsightCard({ insight }) {
   return (
     <DecisionCard
       tone={DECISION_TONE[stateKey]}
-      icon={<Bot size={22} />}
+      icon={
+        <div className="flex h-full w-full items-center justify-center rounded-xl bg-white/90">
+          <img src="/agrismart-mark.png" alt="" className="h-7 w-7 object-contain" />
+        </div>
+      }
       eyebrow={t('aiInsight.farmDecisionEyebrow')}
       headline={headline}
       action={

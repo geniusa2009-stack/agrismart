@@ -84,7 +84,7 @@ const getRecommendation = asyncHandler(async (req, res) => {
     .sort((a, b) => a.startedAt - b.startedAt);
 
   const insight = await getInsightForValve(valve, telemetryHistory, irrigationHistory);
-  res.json(insight);
+  res.json({ success: true, data: insight });
 });
 
 /**
@@ -105,7 +105,7 @@ const getRecommendation = asyncHandler(async (req, res) => {
  */
 const postSoilMoistureEstimate = asyncHandler(async (req, res) => {
   const result = predictSoilMoistureEstimate(req.body);
-  res.json(result);
+  res.json({ success: true, data: result });
 });
 
 /**
@@ -151,7 +151,7 @@ const getIrrigationEventLikelihood = asyncHandler(async (req, res) => {
     .sort((a, b) => a.startedAt - b.startedAt);
 
   const result = predictIrrigationEventLikelihood({ telemetryHistory, irrigationHistory, asOf: new Date() });
-  res.json(result);
+  res.json({ success: true, data: result });
 });
 
 /**
@@ -164,7 +164,7 @@ const getIrrigationEventLikelihood = asyncHandler(async (req, res) => {
  */
 const postArnesanoSoilMoistureForecast = asyncHandler(async (req, res) => {
   const result = predictArnesanoSoilMoisture24h(req.body);
-  res.json(result);
+  res.json({ success: true, data: result });
 });
 
 
@@ -223,7 +223,7 @@ const postCopilotAnalyze = asyncHandler(async (req, res) => {
     lastSeenAt: device ? device.lastSeenAt : null,
   });
 
-  res.json(result);
+  res.json({ success: true, data: result });
 });
 
 
@@ -322,7 +322,7 @@ const postChatMessage = asyncHandler(async (req, res) => {
     lastSeenAt: device ? device.lastSeenAt : null,
   });
 
-  res.json(result);
+  res.json({ success: true, data: result });
 });
 
 module.exports = {
