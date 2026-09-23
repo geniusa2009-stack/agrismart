@@ -123,6 +123,7 @@ export default function Notifications() {
 }
 
 function NotificationRow({ notification, onRead }) {
+  const { t, formatRelativeTime } = useLocale();
   const isUnread = !notification.readAt;
   const link = TYPE_LINKS[notification.type] || '/community';
 

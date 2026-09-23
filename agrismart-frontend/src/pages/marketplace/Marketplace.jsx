@@ -60,6 +60,7 @@ export default function Marketplace() {
 // ---------------------------------------------------------------------
 
 function Discover() {
+  const { t, formatCurrency } = useLocale();
   const [category, setCategory] = useState('');
   const [governorate, setGovernorate] = useState('');
   const [items, setItems] = useState(null);
@@ -153,6 +154,7 @@ function Discover() {
 }
 
 function ListingCard({ listing, initialSaved = false, onContact }) {
+  const { t, formatCurrency } = useLocale();
   const [reportSent, setReportSent] = useState(false);
   const [saved, setSaved] = useState(initialSaved);
   const [saveBusy, setSaveBusy] = useState(false);
@@ -224,6 +226,7 @@ function ListingCard({ listing, initialSaved = false, onContact }) {
 }
 
 function ContactSellerDialog({ listing, onClose }) {
+  const { t, formatCurrency } = useLocale();
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -309,6 +312,7 @@ function ContactSellerDialog({ listing, onClose }) {
 // ---------------------------------------------------------------------
 
 function MyListings() {
+  const { t, formatCurrency } = useLocale();
   const [items, setItems] = useState(null);
   const [error, setError] = useState('');
   const [retryTick, setRetryTick] = useState(0);
@@ -381,6 +385,7 @@ function MyListings() {
 }
 
 function AddListingForm({ onCreated }) {
+  const { t, formatCurrency } = useLocale();
   const [form, setForm] = useState({
     category: 'products',
     title: '',
@@ -476,6 +481,7 @@ function AddListingForm({ onCreated }) {
 // ---------------------------------------------------------------------
 
 function Saved() {
+  const { t, formatCurrency } = useLocale();
   const [items, setItems] = useState(null);
   const [error, setError] = useState('');
   const [retryTick, setRetryTick] = useState(0);

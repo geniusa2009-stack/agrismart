@@ -33,9 +33,14 @@ dist-ssr/
 /playwright/.cache/
 
 # Environment files — keep example/test config, exclude anything that
-# could hold real secrets.
-.env
-.env.*
+# could hold real secrets. `.env*` (no dot required after "env") is
+# deliberately broader than `.env`/`.env.*` alone: a real incident
+# during this project was a misnamed `.envGEMINI_API_KEY` file (typo'd
+# while copying a real, populated .env) that contained a live
+# MONGODB_URI and real JWT secrets and was NOT matched by `.env.*`
+# (no dot after "env") — never tracked, but a real near-miss. This
+# wider pattern catches that whole class of accidental filename typo.
+.env*
 !.env.example
 !.env.test
 

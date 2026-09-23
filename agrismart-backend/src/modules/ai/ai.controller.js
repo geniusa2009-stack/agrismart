@@ -11,8 +11,13 @@
  */
 
 const irrigationRepository = require('../irrigation/irrigation.repository');
+const devicesRepository = require('../devices/devices.repository');
+const devicesService = require('../devices/devices.service');
+const zonesRepository = require('../farms/zones.repository');
+const farmsRepository = require('../farms/farms.repository');
 const Telemetry = require('../telemetry/telemetry.model');
 const { getInsightForValve } = require('../../../ai/services/aiInsightService');
+const { getCopilotRecommendation, getChatResponse } = require('../../../ai/services/geminiCopilotService');
 const { loadLatestModel, listModelVersions } = require('../../../ai/models/modelRegistry');
 const { TARGET } = require('../../../ai/training/train');
 const { asyncHandler, ApiError, ErrorCodes } = require('../../middleware/errorHandler');
@@ -162,6 +167,164 @@ const postArnesanoSoilMoistureForecast = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
+
+/**
+ * POST /ai/copilot/:valveId/analyze
+ * Gemini-backed agricultural copilot ("مساعد AgriSmart الذكي" — see
+ * ai/services/geminiCopilotService.js). Reuses the EXACT SAME
+ * ownership-checked loadValve middleware as getRecommendation above,
+ * so this carries identical access control to the rest of the AI
+ * module — never a separate, weaker path. All context (zone, device
+ * online/lastSeenAt, telemetry, irrigation history) is loaded
+ * server-side from req.valve; the client never supplies farmId/zoneId.
+ *
+ * This handler never calls the commands module or the irrigation
+ * module's actuation methods — it only reads, then hands read-only
+ * context to geminiCopilotService, which itself carries the same hard
+ * rule (see that module's doc-comment and
+ * tests/ai/geminiCopilotSafetyBoundary.test.js).
+ */
+const postCopilotAnalyze = asyncHandler(async (req, res) => {
+  const valve = req.valve;
+  if (!valve) {
+    throw new ApiError(404, 'Valve not found.', { code: ErrorCodes.NOT_FOUND });
+  }
+
+  const since = new Date(Date.now() - HISTORY_WINDOW_MS);
+  const telemetryDocs = await Telemetry.find({ deviceId: valve.deviceId, recordedAt: { $gte: since } })
+    .sort({ recordedAt: 1 })
+    .lean();
+  const telemetryHistory = telemetryDocs
+    .filter((d) => d.readings && typeof d.readings.soilMoisturePercent === 'number')
+    .map((d) => ({ recordedAt: new Date(d.recordedAt), readings: d.readings }));
+
+  const irrigationEventDocs = await irrigationRepository.findRecentEventsForValve(valve._id, { limit: 200 });
+  const irrigationHistory = irrigationEventDocs
+    .filter((e) => e.startedAt && e.startedAt.getTime() >= since.getTime())
+    .map((e) => ({
+      startedAt: new Date(e.startedAt),
+      endedAt: e.endedAt ? new Date(e.endedAt) : null,
+      actualDurationSeconds: e.actualDurationSeconds,
+      plannedDurationSeconds: e.plannedDurationSeconds,
+      appliedWaterVolumeLiters: e.appliedWaterVolumeLiters,
+    }))
+    .sort((a, b) => a.startedAt - b.startedAt);
+
+  const device = await devicesRepository.findByDeviceId(valve.deviceId);
+  const deviceOnline = device ? devicesService.isOnline(device) : false;
+  const zone = valve.zoneId ? await zonesRepository.findByIdPlain(valve.zoneId) : null;
+
+  const result = await getCopilotRecommendation({
+    valve,
+    zone,
+    telemetryHistory,
+    irrigationHistory,
+    deviceOnline,
+    lastSeenAt: device ? device.lastSeenAt : null,
+  });
+
+  res.json(result);
+});
+
+
+/**
+ * Shared by postChatMessage — loads bounded telemetry/irrigation
+ * history for one device/valve. Same window/shape as
+ * postCopilotAnalyze's own inline query (kept as a separate small
+ * helper here rather than refactoring that already-tested handler, to
+ * keep this pass's diff minimal and low-risk).
+ */
+async function loadHistoryForDevice(deviceId, valveId) {
+  const since = new Date(Date.now() - HISTORY_WINDOW_MS);
+  const telemetryDocs = await Telemetry.find({ deviceId, recordedAt: { $gte: since } })
+    .sort({ recordedAt: 1 })
+    .lean();
+  const telemetryHistory = telemetryDocs
+    .filter((d) => d.readings && typeof d.readings.soilMoisturePercent === 'number')
+    .map((d) => ({ recordedAt: new Date(d.recordedAt), readings: d.readings }));
+
+  let irrigationHistory = [];
+  if (valveId) {
+    const irrigationEventDocs = await irrigationRepository.findRecentEventsForValve(valveId, { limit: 200 });
+    irrigationHistory = irrigationEventDocs
+      .filter((e) => e.startedAt && e.startedAt.getTime() >= since.getTime())
+      .map((e) => ({
+        startedAt: new Date(e.startedAt),
+        endedAt: e.endedAt ? new Date(e.endedAt) : null,
+        actualDurationSeconds: e.actualDurationSeconds,
+        plannedDurationSeconds: e.plannedDurationSeconds,
+        appliedWaterVolumeLiters: e.appliedWaterVolumeLiters,
+      }))
+      .sort((a, b) => a.startedAt - b.startedAt);
+  }
+  return { telemetryHistory, irrigationHistory };
+}
+
+/**
+ * POST /ai/chat
+ * Global AI farm assistant ("مساعدك الزراعي" — see
+ * ai/services/geminiCopilotService.js's getChatResponse). Never trusts
+ * a client-supplied farmId/zoneId as authorization: farmId is resolved
+ * against the authenticated user via the SAME anti-IDOR
+ * farmsRepository.findByIdForPrincipal used by every other farm-scoped
+ * route (404, not a leaked 403, on a miss); an optional zoneId is
+ * resolved the same way via zonesRepository.findByIdForPrincipal AND
+ * cross-checked against the resolved farm (mirrors
+ * irrigation.service.assignValveZone's own cross-farm check) so a zone
+ * the user owns on a DIFFERENT farm can never be attached to this
+ * farm's context.
+ *
+ * This handler never calls the commands module or the irrigation
+ * module's actuation methods — only reads, then hands read-only
+ * context to geminiCopilotService, which carries the same hard rule
+ * (see tests/ai/geminiCopilotSafetyBoundary.test.js).
+ */
+const postChatMessage = asyncHandler(async (req, res) => {
+  const { message, farmId, zoneId, context, history } = req.body;
+
+  const farm = await farmsRepository.findByIdForPrincipal(farmId, req.user);
+  if (!farm) {
+    throw new ApiError(404, 'Farm not found.', { code: ErrorCodes.NOT_FOUND });
+  }
+
+  let zone = null;
+  if (zoneId) {
+    zone = await zonesRepository.findByIdForPrincipal(zoneId, req.user);
+    if (!zone || String(zone.farmId) !== String(farm._id)) {
+      throw new ApiError(404, 'Zone not found.', { code: ErrorCodes.NOT_FOUND });
+    }
+  }
+
+  // Pick a representative device/valve for context: prefer one in the
+  // requested zone, otherwise the farm's first device/valve (same
+  // "primary device" convention dashboard.service.js already uses).
+  const devices = await devicesRepository.listByFarmId(farm._id);
+  const device = (zoneId && devices.find((d) => d.zoneId && String(d.zoneId) === String(zoneId))) || devices[0] || null;
+
+  const valves = await irrigationRepository.listValvesByFarmId(farm._id);
+  const valve = device
+    ? valves.find((v) => v.deviceId === device.deviceId) || valves[0] || null
+    : valves[0] || null;
+
+  const { telemetryHistory, irrigationHistory } = device ? await loadHistoryForDevice(device.deviceId, valve ? valve._id : null) : { telemetryHistory: [], irrigationHistory: [] };
+  const deviceOnline = device ? devicesService.isOnline(device) : false;
+
+  const result = await getChatResponse({
+    message,
+    context,
+    locale: req.body.locale,
+    history,
+    valve: valve || { commandedState: 'unknown', confirmedState: 'unknown' },
+    zone,
+    telemetryHistory,
+    irrigationHistory,
+    deviceOnline,
+    lastSeenAt: device ? device.lastSeenAt : null,
+  });
+
+  res.json(result);
+});
+
 module.exports = {
   getStatus,
   getHealth,
@@ -170,4 +333,6 @@ module.exports = {
   postSoilMoistureEstimate,
   getIrrigationEventLikelihood,
   postArnesanoSoilMoistureForecast,
+  postCopilotAnalyze,
+  postChatMessage,
 };

@@ -448,6 +448,14 @@ function ValvePhysicalStatePanel({ valve, t, timeAgoT }) {
  * success.
  */
 function CommandLifecycleCard({ command, valveName, mostRecentCompleted, t, timeAgoT, localeTag }) {
+  const failed = command ? command.status === 'failed' || command.status === 'expired' : false;
+  // This is deliberately a small, EXPANDABLE technical section, not a
+  // permanently-open admin panel — a farmer doesn't need to see
+  // command-stage plumbing to understand irrigation, only when
+  // something failed (kept open by default in that case, since that's
+  // actionable safety information, not background detail).
+  const [open, setOpen] = useState(failed);
+
   if (!command) {
     return (
       <Card title={t('irrigation.commandLifecycle')} subtitle={valveName}>
@@ -456,7 +464,6 @@ function CommandLifecycleCard({ command, valveName, mostRecentCompleted, t, time
     );
   }
 
-  const failed = command.status === 'failed' || command.status === 'expired';
   const phase = commandStagePhase(command.status);
   // A secondary reference is only meaningful when it's a genuinely
   // different command than the (expired/failed) one being shown as
@@ -468,8 +475,17 @@ function CommandLifecycleCard({ command, valveName, mostRecentCompleted, t, time
     <Card
       title={t('irrigation.commandLifecycle')}
       subtitle={`${valveName ? `${valveName} · ` : ''}${commandTypeLabel(command.type, t)} · ${formatAbsoluteTime(command.createdAt, localeTag)} (${timeAgoT(command.createdAt)})`}
+      action={
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="text-xs font-bold text-slate-400 hover:text-slate-600"
+        >
+          {open ? t('irrigation.hideDetails') : t('irrigation.showDetails')}
+        </button>
+      }
     >
-      {failed ? (
+      {!open ? null : failed ? (
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-700">
             <AlertTriangle size={18} className="shrink-0" />

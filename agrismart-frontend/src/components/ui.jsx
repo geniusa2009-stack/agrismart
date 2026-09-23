@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useLocale } from '../i18n/LocaleContext';
 
 export function Card({ title, subtitle, action, className = '', children, padded = true }) {
@@ -104,11 +105,12 @@ export function Spinner({ label }) {
   );
 }
 
-export function EmptyState({ title, sub }) {
+export function EmptyState({ title, sub, action }) {
   return (
     <div className="py-8 text-center">
       <div className="text-sm font-semibold text-slate-500">{title}</div>
       {sub && <div className="mt-1 text-xs text-slate-400">{sub}</div>}
+      {action && <div className="mt-3">{action}</div>}
     </div>
   );
 }
@@ -169,6 +171,92 @@ export function ConfirmDialog({ title, children, onCancel, onConfirm, confirmLab
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Small, consistent heading used above a group of cards/sections
+ * (e.g. "الأنشطة الأخيرة", "خبراتي"). Keeps every page's section
+ * headings the same size/weight/spacing instead of each page picking
+ * its own ad-hoc <h2> styling. */
+export function SectionHeader({ title, action }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="text-sm font-extrabold text-slate-700">{title}</h2>
+      {action}
+    </div>
+  );
+}
+
+/** The ONE primary "here's what's happening / here's what to do"
+ * surface per screen — farm status, the AI decision, irrigation
+ * status. Deliberately heavier than a normal Card (decision shadow,
+ * bigger headline) so it reads as *the* thing to look at first,
+ * matching the "one main piece of information" rule. Never stacked
+ * more than once per screen. */
+export function DecisionCard({ icon, tone = 'brand', eyebrow, headline, children, action }) {
+  const tones = {
+    brand: { bg: 'bg-brand-50/70', ring: 'bg-brand-600', text: 'text-brand-900', iconText: 'text-brand-700' },
+    accent: { bg: 'bg-accent-50/70', ring: 'bg-accent-600', text: 'text-accent-900', iconText: 'text-accent-700' },
+    amber: { bg: 'bg-amber-50/70', ring: 'bg-amber-500', text: 'text-amber-900', iconText: 'text-amber-700' },
+    slate: { bg: 'bg-slate-50', ring: 'bg-slate-400', text: 'text-slate-800', iconText: 'text-slate-600' },
+  };
+  const tv = tones[tone] || tones.brand;
+  return (
+    <div className={`rounded-xl2 border border-slate-100 ${tv.bg} p-5 shadow-decision`}>
+      <div className="flex items-start gap-3">
+        {icon && (
+          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tv.ring} text-white`}>
+            {icon}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          {eyebrow && <div className={`text-xs font-bold ${tv.iconText}`}>{eyebrow}</div>}
+          <div className={`mt-0.5 text-xl font-extrabold leading-snug ${tv.text}`}>{headline}</div>
+          {children && <div className="mt-2 text-sm text-slate-600">{children}</div>}
+        </div>
+      </div>
+      {action && <div className="mt-4">{action}</div>}
+    </div>
+  );
+}
+
+/** A single big, obvious tap target — "quick actions" row on Home,
+ * primary route into a feature (irrigation, farm, equipment,
+ * community). Icon + short label only, no secondary text, so a
+ * farmer recognizes it in under a second. */
+export function ActionCard({ icon, label, onClick, to, tone = 'brand' }) {
+  const tones = {
+    brand: 'bg-brand-50 text-brand-700',
+    accent: 'bg-accent-50 text-accent-700',
+    amber: 'bg-amber-50 text-amber-700',
+    slate: 'bg-slate-100 text-slate-600',
+  };
+  const className = 'flex flex-1 flex-col items-center gap-2 rounded-xl2 border border-slate-100 bg-white px-3 py-4 text-center shadow-card transition-shadow hover:shadow-cardHover';
+  const inner = (
+    <>
+      <div className={`flex h-11 w-11 items-center justify-center rounded-full ${tones[tone] || tones.brand}`}>
+        {icon}
+      </div>
+      <span className="text-xs font-bold text-slate-700">{label}</span>
+    </>
+  );
+  if (to) {
+    return <Link to={to} onClick={onClick} className={className}>{inner}</Link>;
+  }
+  return <button type="button" onClick={onClick} className={className}>{inner}</button>;
+}
+
+/** Consistent round initial-letter avatar for community posts/profile
+ * — no fabricated photo, just the person's own display name. */
+export function Avatar({ name, size = 36 }) {
+  const initial = (name || '?').trim().charAt(0).toUpperCase();
+  return (
+    <div
+      className="flex shrink-0 items-center justify-center rounded-full bg-brand-100 font-bold text-brand-700"
+      style={{ width: size, height: size, fontSize: size * 0.42 }}
+    >
+      {initial}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Loader2, MapPin, Pencil, UserPlus, UserMinus, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Card, Badge, Spinner, ErrorState } from '../../components/ui';
 import { useLocale } from '../../i18n/LocaleContext';
+import { translateApiError } from '../../i18n/errorMessages';
 
 /**
  * ملفي الشخصي / farmer profile — real API-backed only. Two entry
@@ -107,6 +108,7 @@ export default function Profile() {
 }
 
 function ProfileView({ profile, onEdit, onToggleFollow, followBusy }) {
+  const { t, formatDate } = useLocale();
   const verificationTone = profile.verificationStatus === 'verified' ? 'green' : profile.verificationStatus === 'pending' ? 'amber' : 'slate';
   const verificationLabel =
     profile.verificationStatus === 'verified'
@@ -266,6 +268,7 @@ function TagInput({ value, onChange, placeholder }) {
 }
 
 function ProfileEditForm({ profile, onCancel, onSaved }) {
+  const { t } = useLocale();
   const [displayName, setDisplayName] = useState(profile.displayName || '');
   const [bio, setBio] = useState(profile.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl || '');
@@ -299,7 +302,7 @@ function ProfileEditForm({ profile, onCancel, onSaved }) {
       const updated = await api.patch('/community/profile/me', updates);
       onSaved(updated);
     } catch (err) {
-      setError(err.message || 'تعذّر حفظ التغييرات.');
+      setError(translateApiError(err, t) || t('community.saveProfileFailed'));
     } finally {
       setBusy(false);
     }
@@ -365,7 +368,7 @@ function ProfileEditForm({ profile, onCancel, onSaved }) {
           <TagInput value={interests} onChange={setInterests} placeholder={t('community.addTagPlaceholder')} />
         </Field>
 
-        <Field label="رابط الصورة (اختياري)">
+        <Field label={t('community.avatarUrlLabel')}>
           <input
             value={avatarUrl}
             onChange={(e) => setAvatarUrl(e.target.value)}

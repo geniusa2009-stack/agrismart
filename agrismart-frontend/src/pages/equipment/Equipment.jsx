@@ -54,6 +54,7 @@ export default function Equipment() {
 // ---------------------------------------------------------------------
 
 function Discover() {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [equipmentType, setEquipmentType] = useState('');
   const [governorate, setGovernorate] = useState('');
   const [items, setItems] = useState(null);
@@ -128,6 +129,7 @@ function Discover() {
 }
 
 function EquipmentCard({ equipment, onClick }) {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [reportSent, setReportSent] = useState(false);
 
   async function handleReport(e) {
@@ -141,31 +143,66 @@ function EquipmentCard({ equipment, onClick }) {
     }
   }
 
+  const photo = equipment.photos?.[0];
+
   return (
     <Card padded={false} className="overflow-hidden">
-      <button onClick={onClick} className="flex w-full flex-col p-4 text-start">
-        <div className="flex items-center justify-between">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-600">
-            <Tractor size={18} />
+      <button onClick={onClick} className="flex w-full flex-col text-start">
+        {/* Large image area — a real owner-supplied photo when one
+            exists, otherwise an honest icon placeholder (never a fake
+            stock photo standing in for equipment the owner hasn't
+            photographed). */}
+        {photo?.url ? (
+          <img src={photo.url} alt={equipment.title} className="h-32 w-full object-cover" />
+        ) : (
+          <div className="flex h-32 w-full items-center justify-center bg-brand-50 text-brand-300">
+            <Tractor size={40} />
           </div>
-          <Badge tone="slate">{t(`equipmentTypes.${equipment.equipmentType}`)}</Badge>
-        </div>
-        <div className="mt-2 text-sm font-bold text-slate-800">{equipment.title}</div>
-        <div className="mt-0.5 text-xs text-slate-400">{equipment.location?.governorate || '—'}</div>
-        <div className="mt-2 flex items-center justify-between">
-          <div className="text-sm font-extrabold text-brand-700">
-            {formatCurrency(equipment.pricing?.amount)} / {equipment.pricing?.unit === 'hour' ? t('equipment.perHour') : equipment.pricing?.unit === 'day' ? t('equipment.perDay') : t('equipment.perJob')}
+        )}
+        <div className="flex flex-col p-4">
+          <div className="flex items-center justify-between gap-2">
+            <Badge tone="slate">{t(`equipmentTypes.${equipment.equipmentType}`)}</Badge>
+            {/* Discover only ever returns status:'active' listings
+                (see equipment.repository.js's discover query), so this
+                badge is a direct, honest reflection of that filter —
+                never an invented "available now" claim. */}
+            <Badge tone="green">{t('equipment.available')}</Badge>
           </div>
-          {equipment.ratingCount > 0 ? (
-            <div className="flex items-center gap-1 text-xs font-bold text-amber-500">
-              <Star size={13} fill="currentColor" /> {equipment.ratingAverage} ({equipment.ratingCount})
+          <div className="mt-2 text-sm font-bold text-slate-800">{equipment.title}</div>
+          <div className="mt-0.5 text-xs text-slate-400">{equipment.location?.governorate || '—'}</div>
+
+          <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+            <span className="rounded-full bg-slate-100 px-2 py-1 font-semibold text-slate-500">
+              {t(`equipment.condition.${equipment.condition}`)}
+            </span>
+            {equipment.operatorAvailable && (
+              <span className="rounded-full bg-brand-50 px-2 py-1 font-semibold text-brand-700">
+                {t('equipment.operatorAvailable')}
+              </span>
+            )}
+          </div>
+
+          <div className="mt-2 flex items-center justify-between">
+            <div className="text-sm font-extrabold text-brand-700">
+              {formatCurrency(equipment.pricing?.amount)} / {equipment.pricing?.unit === 'hour' ? t('equipment.perHour') : equipment.pricing?.unit === 'day' ? t('equipment.perDay') : t('equipment.perJob')}
             </div>
-          ) : (
-            <div className="text-[10px] text-slate-300">{t('equipment.ratingNoReviews')}</div>
-          )}
+            {equipment.ratingCount > 0 ? (
+              <div className="flex items-center gap-1 text-xs font-bold text-amber-500">
+                <Star size={13} fill="currentColor" /> {equipment.ratingAverage} ({equipment.ratingCount})
+              </div>
+            ) : (
+              <div className="text-[10px] text-slate-300">{t('equipment.ratingNoReviews')}</div>
+            )}
+          </div>
         </div>
       </button>
-      <div className="flex justify-end border-t border-slate-50 px-4 py-1.5">
+      <div className="flex items-center justify-between border-t border-slate-50 px-4 py-2">
+        <button
+          onClick={onClick}
+          className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-700"
+        >
+          {t('equipment.bookNow')}
+        </button>
         <button
           onClick={handleReport}
           disabled={reportSent}
@@ -179,6 +216,7 @@ function EquipmentCard({ equipment, onClick }) {
 }
 
 function RentalRequestDialog({ equipment, onClose }) {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [message, setMessage] = useState('');
@@ -293,6 +331,7 @@ function RentalRequestDialog({ equipment, onClose }) {
 // ---------------------------------------------------------------------
 
 function MyEquipment() {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [items, setItems] = useState(null);
   const [error, setError] = useState('');
   const [retryTick, setRetryTick] = useState(0);
@@ -363,6 +402,7 @@ function MyEquipment() {
 }
 
 function AddEquipmentForm({ onCreated }) {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [form, setForm] = useState({
     equipmentType: 'tractor',
     title: '',
@@ -459,6 +499,7 @@ function AddEquipmentForm({ onCreated }) {
 // ---------------------------------------------------------------------
 
 function MyRentals() {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [as, setAs] = useState('requester');
   const [items, setItems] = useState(null);
   const [error, setError] = useState('');
@@ -587,6 +628,7 @@ function MyRentals() {
 }
 
 function ReviewRentalDialog({ rental, onClose, onReviewed }) {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);

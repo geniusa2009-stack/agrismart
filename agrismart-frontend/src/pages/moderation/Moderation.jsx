@@ -105,6 +105,7 @@ export default function Moderation() {
 }
 
 function ReportRow({ report, onResolved }) {
+  const { t, formatRelativeTime } = useLocale();
   const [note, setNote] = useState('');
   const [busyAction, setBusyAction] = useState('');
   const [error, setError] = useState('');

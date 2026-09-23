@@ -38,11 +38,21 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Cairo covers Arabic + Latin with one consistent, warm,
+        // modern-but-not-futuristic typeface — used for both ar/ar-eg
+        // and en so switching locales never changes the type "feel".
+        // Falls back to Inter/system fonts if the Google Fonts request
+        // is ever blocked (offline demo, restricted network).
+        sans: ['Cairo', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         card: '0 1px 2px rgba(16,24,40,0.06), 0 1px 3px rgba(16,24,40,0.10)',
         cardHover: '0 2px 4px rgba(16,24,40,0.08), 0 6px 16px rgba(16,24,40,0.10)',
+        // A slightly warmer, more deliberate shadow reserved for the
+        // single "primary decision" surface per screen (farm status,
+        // AI decision card, irrigation status) — see DecisionCard in
+        // ui.jsx. Not used for ordinary content cards.
+        decision: '0 1px 2px rgba(20,86,60,0.08), 0 8px 24px rgba(20,86,60,0.12)',
       },
       borderRadius: {
         xl2: '1.25rem',

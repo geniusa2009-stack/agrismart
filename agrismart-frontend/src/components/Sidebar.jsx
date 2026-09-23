@@ -47,6 +47,19 @@ const COMMUNITY_NAV_ITEMS = [
 const STAFF_ROLES = new Set(['moderator', 'admin', 'super_admin']);
 const MODERATION_NAV_ITEM = { to: '/moderation', key: 'moderation.title', icon: ShieldAlert };
 
+// Mobile bottom nav is a deliberately separate, shorter list from the
+// desktop sidebar — 5 destinations a farmer actually needs one thumb-tap
+// away (الرئيسية / أرضي / الري / المجتمع / الخدمات), not a shrunk copy
+// of every desktop nav item. Each key is a full dotted t() path so the
+// same NavLink rendering logic works for both "nav.*" and "*.title" keys.
+const MOBILE_NAV_ITEMS = [
+  { to: '/', key: 'nav.home', icon: LayoutDashboard, end: true },
+  { to: '/farm', key: 'nav.myFarm', icon: Sprout },
+  { to: '/irrigation', key: 'nav.irrigation', icon: Droplets },
+  { to: '/community', key: 'nav.community', icon: Users },
+  { to: '/services', key: 'services.title', icon: Wrench },
+];
+
 export default function Sidebar({ mobile = false, onNavigate }) {
   const { activeFarm, activeFarmId, farms, setActiveFarmId, user } = useAuth();
   const { t } = useLocale();
@@ -70,22 +83,25 @@ export default function Sidebar({ mobile = false, onNavigate }) {
   const badges = unreadCount > 0 ? { '/notifications': unreadCount } : {};
 
   if (mobile) {
-    const MOBILE_ITEMS = NAV_ITEMS.slice(0, 4).concat(NAV_ITEMS[5]);
     return (
       <nav className="fixed bottom-0 left-0 right-0 z-30 flex items-stretch justify-around border-t border-brand-100 bg-white/95 px-1 py-1.5 backdrop-blur md:hidden">
-        {MOBILE_ITEMS.map((item) => (
+        {MOBILE_NAV_ITEMS.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.end}
             className={({ isActive }) =>
-              `flex flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-[11px] font-medium ${
+              `flex flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-2 text-[11px] font-semibold transition-colors ${
                 isActive ? 'text-brand-600' : 'text-slate-400'
               }`
             }
           >
-            <item.icon size={20} strokeWidth={2} />
-            {item.key === 'dashboard' ? t('nav.home') : t(`nav.${item.key}`)}
+            {({ isActive }) => (
+              <>
+                <item.icon size={22} strokeWidth={isActive ? 2.4 : 2} />
+                {t(item.key)}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>

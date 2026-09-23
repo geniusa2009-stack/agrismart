@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import {
   Droplet, Thermometer, FlaskConical, Waves, CheckCircle2, AlertTriangle, ArrowRight,
   Activity, Search, Brain, Zap, ShieldCheck, Clock, MapPin, Wifi, WifiOff, Radio, Check,
+  Droplets, Sprout, Tractor, Users,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { usePolling } from '../hooks';
-import { Card, Badge, EmptyState, DashboardSkeleton } from '../components/ui';
+import { Card, Badge, EmptyState, DashboardSkeleton, ActionCard, DecisionCard } from '../components/ui';
 import AiInsightCard from '../components/AiInsightCard';
+import GeminiCopilotCard from '../components/GeminiCopilotCard';
 import { MoistureAreaChart, DevicesDonut } from '../components/charts';
 import { useLocale } from '../i18n/LocaleContext';
 
@@ -44,6 +46,24 @@ function greetingKey() {
   if (h < 12) return 'dashboard.goodMorning';
   if (h < 18) return 'dashboard.goodAfternoon';
   return 'dashboard.goodEvening';
+}
+
+/**
+ * The one-tap-away row a farmer actually needs from Home: start/check
+ * irrigation, see the farm, rent equipment, ask the community. Real
+ * routes only (no placeholder links) — same destinations as the
+ * sidebar/bottom nav, just surfaced where a farmer looks first.
+ */
+function QuickActions() {
+  const { t } = useLocale();
+  return (
+    <div className="grid grid-cols-4 gap-2 sm:gap-3">
+      <ActionCard to="/irrigation" tone="accent" icon={<Droplets size={20} />} label={t('dashboard.quickActions.irrigation')} />
+      <ActionCard to="/farm" tone="brand" icon={<Sprout size={20} />} label={t('dashboard.quickActions.myFarm')} />
+      <ActionCard to="/equipment" tone="amber" icon={<Tractor size={20} />} label={t('dashboard.quickActions.equipment')} />
+      <ActionCard to="/community" tone="slate" icon={<Users size={20} />} label={t('dashboard.quickActions.community')} />
+    </div>
+  );
 }
 
 export default function Dashboard() {
@@ -122,6 +142,7 @@ export default function Dashboard() {
           <h1 className="mt-0.5 text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
             {activeFarm?.name || t('dashboard.yourFarm')}
           </h1>
+          <p className="mt-1 text-sm text-slate-500">{t('dashboard.heroSubtitle')}</p>
         </div>
         <div className="flex items-center gap-2 text-xs">
           <div className="flex items-center gap-1.5 rounded-full border border-slate-100 bg-white px-3 py-1.5 font-medium text-slate-400 shadow-card">
@@ -144,6 +165,10 @@ export default function Dashboard() {
       <FarmStatusInsight valve={primaryValve} moisture={moisture} latest={latest} />
 
       <AiInsightCard insight={aiInsight} />
+
+      <GeminiCopilotCard valveId={primaryValve?.valveId} deviceOnline={primaryDevice?.online} />
+
+      <QuickActions />
 
       <KpiStrip
         moisture={moisture}
@@ -289,31 +314,27 @@ function FarmStatusInsight({ valve, moisture, latest }) {
     detail = t('dashboard.aboveThresholdDetail');
   }
 
-  const tones = {
-    brand: { bg: 'bg-brand-50/70', ring: 'bg-brand-600', text: 'text-brand-800' },
-    accent: { bg: 'bg-accent-50/70', ring: 'bg-accent-600', text: 'text-accent-800' },
-    amber: { bg: 'bg-amber-50/70', ring: 'bg-amber-500', text: 'text-amber-800' },
-    slate: { bg: 'bg-slate-50', ring: 'bg-slate-400', text: 'text-slate-700' },
-  };
-  const toneValue = tones[tone];
   const Icon = icon;
-
+  // DecisionCard only knows brand/accent/amber/slate tones — "tone"
+  // here already only ever takes those four values (see the branches
+  // above), so this is a direct pass-through, not a remap.
   return (
-    <div className={`flex items-center gap-4 rounded-xl2 border border-slate-100 ${toneValue.bg} px-5 py-4 shadow-card`}>
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${toneValue.ring} text-white`}>
-        <Icon size={20} />
-      </div>
-      <div className="min-w-0">
-        <div className={`text-base font-extrabold ${toneValue.text}`}>{headline}</div>
-        <div className="mt-0.5 text-xs text-slate-500">{detail}</div>
-      </div>
-      {latest?.recordedAt && (
-        <div className="ms-auto hidden shrink-0 text-end text-[11px] text-slate-400 sm:block">
-          <div>{t('dashboard.updated')}</div>
-          <div className="font-semibold text-slate-500">{timeAgoT(latest.recordedAt)}</div>
-        </div>
-      )}
-    </div>
+    <DecisionCard
+      tone={tone}
+      icon={<Icon size={22} />}
+      eyebrow={t('dashboard.farmStatusEyebrow')}
+      headline={headline}
+      action={
+        latest?.recordedAt ? (
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400">
+            <Clock size={12} />
+            {t('dashboard.updated')} · {timeAgoT(latest.recordedAt)}
+          </div>
+        ) : null
+      }
+    >
+      {detail}
+    </DecisionCard>
   );
 }
 

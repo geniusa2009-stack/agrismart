@@ -68,6 +68,7 @@ export default function Services() {
 // ---------------------------------------------------------------------
 
 function Discover() {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [serviceType, setServiceType] = useState('');
   const [governorate, setGovernorate] = useState('');
   const [items, setItems] = useState(null);
@@ -142,6 +143,7 @@ function Discover() {
 }
 
 function ServiceCard({ service, onClick }) {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [reportSent, setReportSent] = useState(false);
 
   async function handleReport(e) {
@@ -194,6 +196,7 @@ function ServiceCard({ service, onClick }) {
 }
 
 function ServiceRequestDialog({ service, onClose }) {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [preferredDate, setPreferredDate] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -289,6 +292,7 @@ function ServiceRequestDialog({ service, onClose }) {
 // ---------------------------------------------------------------------
 
 function MyServices() {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [items, setItems] = useState(null);
   const [error, setError] = useState('');
   const [retryTick, setRetryTick] = useState(0);
@@ -359,6 +363,7 @@ function MyServices() {
 }
 
 function AddServiceForm({ onCreated }) {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [form, setForm] = useState({
     serviceType: 'agricultural_consultant',
     title: '',
@@ -455,6 +460,7 @@ function AddServiceForm({ onCreated }) {
 // ---------------------------------------------------------------------
 
 function MyRequests() {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [as, setAs] = useState('requester');
   const [items, setItems] = useState(null);
   const [error, setError] = useState('');
@@ -589,6 +595,7 @@ function MyRequests() {
 }
 
 function ReviewRequestDialog({ request, onClose, onReviewed }) {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);

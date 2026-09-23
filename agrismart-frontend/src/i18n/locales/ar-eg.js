@@ -30,6 +30,17 @@ const arEg = {
   analytics: {
     soilMoisture: 'رطوبة الأرض (%)',
   },
+  geminiCopilot: {
+    subtitle: 'أرضك حالتها إيه دلوقتي؟',
+    analyzeButton: 'حلّل الأرض',
+    nextStepLabel: 'إيه تعمل بعد كده',
+    decisionLabels: {
+      irrigate_now: 'أروي دلوقتي',
+      do_not_irrigate: 'الري مش لازم دلوقتي',
+    },
+    startIrrigationButton: 'ابدأ الري',
+    simulationNote: 'مفيش جهاز حقيقي متوصل لسه — ده عرض لخطوات الأمر بس (تجربة برمجية)، والمحبس ما اتفتحش فعلياً.',
+  },
   aiInsight: {
     unavailableMessage: 'لسه مفيش بيانات كفاية عشان نديك توصية مضمونة دلوقتي.',
     probabilityLabel: 'احتمال إن الأرض محتاجة ري في الـ3 ساعات الجاية',
@@ -43,6 +54,10 @@ const arEg = {
     village: 'البلد',
   },
   dashboard: {
+    heroSubtitle: 'خلينا نشوف أرضك النهارده',
+    quickActions: {
+      equipment: 'أجّر معدة',
+    },
     soilMoisture: 'رطوبة الأرض',
     ecSalinity: 'ملوحة التربة',
     devices: 'الحساسات',

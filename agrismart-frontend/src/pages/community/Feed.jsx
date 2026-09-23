@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageCircle, Heart, Flag, Loader2, Send, User } from 'lucide-react';
+import { MessageCircle, Heart, Flag, Loader2, Send, User, Users, MessageCirclePlus } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { Card, Badge, Spinner, EmptyState, ErrorState, ConfirmDialog } from '../../components/ui';
 import { useLocale } from '../../i18n/LocaleContext';
+import { translateApiError } from '../../i18n/errorMessages';
 
 const CATEGORY_KEYS = [
   'question',
@@ -18,6 +19,18 @@ const CATEGORY_KEYS = [
   'news',
   'general',
 ];
+
+// Distinct visual treatment for the three post types the spec calls
+// out by name (سؤال / نصيحة / تجربة من أرضي) — every other real
+// category still renders, just falls back to the generic green badge
+// + its normal category label instead of a dedicated one.
+const POST_TYPE_TONE = { question: 'amber', advice: 'blue', experience: 'green' };
+function postTypeLabel(category, t) {
+  if (category === 'question' || category === 'advice' || category === 'experience') {
+    return t(`community.postType.${category}`);
+  }
+  return t(`categories.${category}`);
+}
 
 /**
  * المجتمع — the agricultural community feed. Real API-backed only: no
@@ -39,6 +52,12 @@ export default function Feed() {
   const [retryTick, setRetryTick] = useState(0);
   const [page, setPage] = useState(1);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [composerCategory, setComposerCategory] = useState('question');
+
+  function openComposer(initialCategory) {
+    setComposerCategory(initialCategory);
+    setComposerOpen(true);
+  }
 
   const loadFeed = useCallback(
     async (pageToLoad, append) => {
@@ -50,7 +69,7 @@ export default function Feed() {
         setPagination(p);
         setLoadError('');
       } catch (err) {
-        setLoadError(err.message || 'تعذّر تحميل المنشورات.');
+        setLoadError(translateApiError(err, t) || t('community.errorLoading'));
       }
     },
     [category]
@@ -79,17 +98,37 @@ export default function Feed() {
 
   return (
     <div dir={isRtl ? 'rtl' : 'ltr'} className={`flex flex-col gap-4 ${isRtl ? 'text-right' : 'text-left'}`} lang={locale === 'en' ? 'en' : 'ar'}>
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-extrabold text-slate-800">{t('community.title')}</h1>
-        <button
-          onClick={() => setComposerOpen((v) => !v)}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white hover:bg-brand-700"
-        >
-          {composerOpen ? t('community.cancel') : t('community.newPost')}
-        </button>
-      </div>
+      {!composerOpen && (
+        <div className="rounded-xl2 border border-brand-100 bg-brand-50/50 p-5">
+          <div className="flex items-center gap-2 text-brand-700">
+            <Users size={20} />
+            <h1 className="text-lg font-extrabold text-slate-800">{t('community.heroTitle')}</h1>
+          </div>
+          <p className="mt-1 text-sm text-slate-600">{t('community.heroSubtitle')}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => openComposer('question')}
+              className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white hover:bg-brand-700"
+            >
+              <MessageCirclePlus size={15} /> {t('community.askFarmers')}
+            </button>
+            <button
+              onClick={() => openComposer('experience')}
+              className="rounded-lg border border-brand-200 bg-white px-4 py-2 text-sm font-bold text-brand-700 hover:bg-brand-50"
+            >
+              {t('community.shareExperience')}
+            </button>
+          </div>
+        </div>
+      )}
 
-      {composerOpen && <Composer onCreated={handleCreated} onCancel={() => setComposerOpen(false)} />}
+      {composerOpen && (
+        <Composer
+          initialCategory={composerCategory}
+          onCreated={handleCreated}
+          onCancel={() => setComposerOpen(false)}
+        />
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         <CategoryChip active={category === ''} onClick={() => setCategory('')} label={t('community.allCategories')} />
@@ -111,7 +150,20 @@ export default function Feed() {
       {!posts && !loadError && <Spinner label={t('community.loading')} />}
       {posts && posts.length === 0 && (
         <Card>
-          <EmptyState title={t('community.emptyFeed')} sub={t('community.emptyFeedSub')} />
+          <EmptyState
+            title={t('community.emptyFeed')}
+            sub={t('community.emptyFeedSub')}
+            action={
+              !composerOpen && (
+                <button
+                  onClick={() => openComposer('question')}
+                  className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-bold text-white hover:bg-brand-700"
+                >
+                  {t('community.emptyFeedCta')}
+                </button>
+              )
+            }
+          />
         </Card>
       )}
 
@@ -148,9 +200,25 @@ function CategoryChip({ active, onClick, label }) {
   );
 }
 
-function Composer({ onCreated, onCancel }) {
+// The three quick-pick categories a farmer reaches for most, matching
+// the composer's spec. The full category list (crop_problem,
+// irrigation, soil, equipment, market_prices, news, general) stays
+// available in the select below — this row is a shortcut, not a
+// replacement, so nothing narrower than what the API already accepts
+// is lost. No photo/image button here: post.model.js has an
+// `attachments` schema field but no real upload endpoint/UI wired to
+// it yet, so a camera button would be a fake control — left out
+// honestly rather than faking it.
+const QUICK_CATEGORIES = [
+  { key: 'question', emoji: '❓' },
+  { key: 'experience', emoji: '🌱' },
+  { key: 'advice', emoji: '💡' },
+];
+
+function Composer({ onCreated, onCancel, initialCategory = 'question' }) {
+  const { t } = useLocale();
   const [body, setBody] = useState('');
-  const [category, setCategory] = useState('general');
+  const [category, setCategory] = useState(initialCategory);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -164,7 +232,7 @@ function Composer({ onCreated, onCancel }) {
       setBody('');
       onCreated(post);
     } catch (err) {
-      setError(err.message || 'تعذّر نشر المنشور.');
+      setError(translateApiError(err, t) || t('community.publishFailed'));
     } finally {
       setBusy(false);
     }
@@ -172,7 +240,22 @@ function Composer({ onCreated, onCancel }) {
 
   return (
     <Card>
-      <form onSubmit={submit} className="flex flex-col gap-3">
+      <h2 className="text-base font-extrabold text-slate-800">{t('community.composerHeadline')}</h2>
+      <form onSubmit={submit} className="mt-3 flex flex-col gap-3">
+        <div className="flex flex-wrap gap-1.5">
+          {QUICK_CATEGORIES.map((qc) => (
+            <button
+              key={qc.key}
+              type="button"
+              onClick={() => setCategory(qc.key)}
+              className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold ${
+                category === qc.key ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <span>{qc.emoji}</span> {t(`community.postType.${qc.key}`)}
+            </button>
+          ))}
+        </div>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -214,6 +297,7 @@ function Composer({ onCreated, onCancel }) {
 }
 
 function PostCard({ post, currentUserId, onDeleted }) {
+  const { t, formatRelativeTime } = useLocale();
   const [reactionCount, setReactionCount] = useState(post.reactionCount);
   const [reacted, setReacted] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -258,7 +342,10 @@ function PostCard({ post, currentUserId, onDeleted }) {
     <Card>
       <div className="flex items-start justify-between gap-2">
         <div>
-          <Badge tone="green">{t(`categories.${post.category}`)}</Badge>
+          <Badge tone={POST_TYPE_TONE[post.category] || 'green'}>{postTypeLabel(post.category, t)}</Badge>
+          {post.category === 'question' && post.commentCount > 0 && (
+            <Badge tone="blue">{t('community.hasReplies')}</Badge>
+          )}
           <span className="me-2 text-[11px] text-slate-400">{formatRelativeTime(post.createdAt)}</span>
           <Link
             to={isOwner ? '/community/profile' : `/community/profile/${post.authorId}`}
@@ -310,6 +397,7 @@ function PostCard({ post, currentUserId, onDeleted }) {
 }
 
 function CommentsSection({ postId }) {
+  const { t, formatRelativeTime } = useLocale();
   const [comments, setComments] = useState(null);
   const [error, setError] = useState('');
   const [text, setText] = useState('');
@@ -319,7 +407,7 @@ function CommentsSection({ postId }) {
     api
       .getPaginated(`/community/posts/${postId}/comments?limit=20`)
       .then(({ items }) => setComments(items))
-      .catch((err) => setError(err.message || 'تعذّر تحميل التعليقات.'));
+      .catch((err) => setError(translateApiError(err, t) || t('community.commentsLoadFailed')));
   }, [postId]);
 
   async function submit(e) {
@@ -341,7 +429,7 @@ function CommentsSection({ postId }) {
     <div className="mt-3 border-t border-slate-50 pt-3">
       {error && <div className="text-xs text-red-500">{error}</div>}
       {!comments && !error && <div className="text-xs text-slate-400">{t('community.loading')}</div>}
-      {comments && comments.length === 0 && <div className="text-xs text-slate-400">لا توجد تعليقات بعد.</div>}
+      {comments && comments.length === 0 && <div className="text-xs text-slate-400">{t('community.noCommentsYet')}</div>}
       {comments && comments.length > 0 && (
         <div className="flex flex-col gap-2">
           {comments.map((c) => (

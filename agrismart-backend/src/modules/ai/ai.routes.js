@@ -15,6 +15,7 @@ const validate = require('../../middleware/validate');
 const authenticate = require('../../middleware/authenticate');
 const irrigationController = require('../irrigation/irrigation.controller');
 const { valveIdParamsSchema } = require('../irrigation/irrigation.validators');
+const { chatRequestSchema } = require('./ai.validators');
 const { InputSchema: tomatoSoilMoistureInputSchema } = require('../../../ai/inference/predictTomatoSoilMoisture');
 const { InputSchema: arnesanoSoilMoistureInputSchema } = require('../../../ai/inference/predictArnesanoSoilMoisture24h');
 
@@ -51,5 +52,21 @@ router.get(
 );
 
 router.post('/arnesano-soil-moisture-forecast', validate(arnesanoSoilMoistureInputSchema, 'body'), controller.postArnesanoSoilMoistureForecast);
+
+// Gemini-backed agricultural copilot — advisory only, see
+// ai/services/geminiCopilotService.js. Reuses the exact same
+// ownership-checked loadValve middleware as /recommendations/:valveId.
+router.post(
+  '/copilot/:valveId/analyze',
+  validate(valveIdParamsSchema, 'params'),
+  irrigationController.loadValve,
+  controller.postCopilotAnalyze
+);
+
+// Global AI farm assistant — reachable from any authenticated page.
+// farmId/zoneId ownership is resolved server-side inside the
+// controller (farmsRepository/zonesRepository findByIdForPrincipal),
+// never trusted from the request body directly.
+router.post('/chat', validate(chatRequestSchema, 'body'), controller.postChatMessage);
 
 module.exports = router;
