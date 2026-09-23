@@ -148,6 +148,18 @@ export async function seedAuthToken(page) {
   );
 }
 
+const LOCALE_KEY = 'agrismart_locale';
+
+/** Seeds the LocaleContext's persisted locale ('ar-eg' | 'ar' | 'en') before boot. */
+export async function seedLocale(page, locale) {
+  await page.addInitScript(
+    ([key, value]) => {
+      window.localStorage.setItem(key, value);
+    },
+    [LOCALE_KEY, locale]
+  );
+}
+
 /**
  * Installs a single router covering the whole API surface used by the app.
  * `calls` (array) records every intercepted request as { method, url, postData }.
@@ -167,6 +179,17 @@ export function installApiMocks(page, opts = {}) {
       { commandId: 'cmd-1', type: 'open_valve', status: 'completed', createdAt: new Date().toISOString() },
     ],
     loginShouldFail: false,
+    chatResponse: {
+      status: 'available',
+      decision: null,
+      answer: 'Irrigation is not needed right now.',
+      reasons: ['Soil moisture is adequate', 'The last irrigation was recent'],
+      nextStep: 'Keep monitoring soil moisture over the next couple of hours.',
+      intents: { irrigationExecutionRequested: false, equipmentIntent: false, communityIntent: false },
+      confidence: 'medium',
+      limitations: [],
+      source: 'gemini',
+    },
     ...opts,
   };
 
@@ -340,6 +363,11 @@ export function installApiMocks(page, opts = {}) {
     if (emergencyMatch && method === 'POST') {
       state.valves = state.valves.map((v) => ({ ...v, commandedState: 'closed' }));
       return route.fulfill(ok({ stopped: state.valves.length }));
+    }
+
+    // ---- Global AI chat assistant ----
+    if (path === '/ai/chat' && method === 'POST') {
+      return route.fulfill(ok(state.chatResponse));
     }
 
     // fallback: unknown endpoint

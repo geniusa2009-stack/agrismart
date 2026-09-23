@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
+import GlobalChatWidget from './components/GlobalChatWidget';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Onboarding from './pages/Onboarding';
@@ -87,6 +88,7 @@ export default function App() {
         </div>
       </main>
       <Sidebar mobile />
+      <GlobalChatWidget />
     </div>
   );
 }
