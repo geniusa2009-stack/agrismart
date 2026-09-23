@@ -4,7 +4,7 @@ import { MessageCircle, Heart, Flag, Loader2, Send, User } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { Card, Badge, Spinner, EmptyState, ErrorState, ConfirmDialog } from '../../components/ui';
-import { t, formatRelativeTime } from '../../i18n';
+import { useLocale } from '../../i18n/LocaleContext';
 
 const CATEGORY_KEYS = [
   'question',
@@ -31,6 +31,7 @@ const CATEGORY_KEYS = [
  */
 export default function Feed() {
   const { user } = useAuth();
+  const { t, formatRelativeTime, isRtl, locale } = useLocale();
   const [category, setCategory] = useState('');
   const [posts, setPosts] = useState(null);
   const [pagination, setPagination] = useState(null);
@@ -77,7 +78,7 @@ export default function Feed() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-4 text-right" lang="ar">
+    <div dir={isRtl ? 'rtl' : 'ltr'} className={`flex flex-col gap-4 ${isRtl ? 'text-right' : 'text-left'}`} lang={locale === 'en' ? 'en' : 'ar'}>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold text-slate-800">{t('community.title')}</h1>
         <button
@@ -258,10 +259,10 @@ function PostCard({ post, currentUserId, onDeleted }) {
       <div className="flex items-start justify-between gap-2">
         <div>
           <Badge tone="green">{t(`categories.${post.category}`)}</Badge>
-          <span className="mr-2 text-[11px] text-slate-400">{formatRelativeTime(post.createdAt)}</span>
+          <span className="me-2 text-[11px] text-slate-400">{formatRelativeTime(post.createdAt)}</span>
           <Link
             to={isOwner ? '/community/profile' : `/community/profile/${post.authorId}`}
-            className="mr-2 inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-brand-600"
+            className="me-2 inline-flex items-center gap-1 text-[11px] font-semibold text-slate-400 hover:text-brand-600"
           >
             <User size={11} /> {t('community.viewProfile')}
           </Link>

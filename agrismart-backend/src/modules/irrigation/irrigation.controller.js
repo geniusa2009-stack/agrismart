@@ -67,4 +67,9 @@ const updateAutomation = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: valve });
 });
 
-module.exports = { createValve, openValve, closeValve, emergencyStop, loadValve, updateAutomation };
+const assignZone = asyncHandler(async (req, res) => {
+  const valve = await irrigationService.assignValveZone(req.valve, req.body.zoneId);
+  res.status(200).json({ success: true, data: valve });
+});
+
+module.exports = { createValve, openValve, closeValve, emergencyStop, loadValve, updateAutomation, assignZone };

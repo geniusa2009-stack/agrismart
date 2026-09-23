@@ -4,33 +4,40 @@ import { LayoutDashboard, Sprout, Cpu, Droplets, BarChart3, Bell, Settings, User
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { usePolling } from '../hooks';
+import { useLocale } from '../i18n/LocaleContext';
+import LanguageSwitcher from './LanguageSwitcher';
 
 // Official AgriSmart logo asset — used as-is, not recreated. See
 // BRAND.md for the token/asset documentation.
 const LOGO_SRC = '/agrismart-logo.png';
 
+// Nav keys resolve through t('nav.<key>') so every label follows the
+// active locale (ar / ar-eg / en) instead of being hardcoded — see
+// i18n/LocaleContext.jsx. Icons are direction-neutral (no arrows), so
+// they don't need RTL mirroring.
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/farm', label: 'My Farm', icon: Sprout },
-  { to: '/devices', label: 'Devices', icon: Cpu },
-  { to: '/irrigation', label: 'Irrigation', icon: Droplets },
-  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { to: '/alerts', label: 'Alerts', icon: Bell },
-  { to: '/settings', label: 'Settings', icon: Settings },
+  { to: '/', key: 'dashboard', icon: LayoutDashboard, end: true },
+  { to: '/farm', key: 'myFarm', icon: Sprout },
+  { to: '/devices', key: 'devices', icon: Cpu },
+  { to: '/irrigation', key: 'irrigation', icon: Droplets },
+  { to: '/analytics', key: 'analytics', icon: BarChart3 },
+  { to: '/alerts', key: 'alerts', icon: Bell },
+  { to: '/settings', key: 'settings', icon: Settings },
 ];
 
-// The new Community + Marketplace layer's entry points — Arabic labels
-// deliberately, even inside this otherwise-English sidebar (Overnight
-// Community task, section 15: "All user-facing community text should
-// be Arabic"). Their destination pages are a separate dir="rtl"
-// subtree; only the nav labels themselves live in the LTR sidebar.
+// The Community + Marketplace layer's entry points. Previously hardcoded
+// Arabic labels regardless of app locale; now resolved through the same
+// t() as the rest of the sidebar so they follow ar / ar-eg / en too.
+// Their destination pages still set their own dir="rtl" wrapper
+// independently for now (see FINAL_REPORT's localization audit note —
+// not yet migrated onto useLocale()'s app-wide dir).
 const COMMUNITY_NAV_ITEMS = [
-  { to: '/community', label: 'المجتمع', icon: Users, end: true },
-  { to: '/community/profile', label: 'ملفي الشخصي', icon: UserCircle },
-  { to: '/equipment', label: 'تأجير المعدات', icon: Tractor },
-  { to: '/services', label: 'الخدمات الزراعية', icon: Wrench },
-  { to: '/marketplace', label: 'السوق الزراعي', icon: ShoppingBasket },
-  { to: '/notifications', label: 'الإشعارات', icon: BellRing },
+  { to: '/community', key: 'nav.community', icon: Users, end: true },
+  { to: '/community/profile', key: 'community.myProfile', icon: UserCircle },
+  { to: '/equipment', key: 'equipment.title', icon: Tractor },
+  { to: '/services', key: 'services.title', icon: Wrench },
+  { to: '/marketplace', key: 'marketplace.title', icon: ShoppingBasket },
+  { to: '/notifications', key: 'notifications.title', icon: BellRing },
 ];
 
 // Same staff check as Moderation.jsx's client-side gate (mirrors
@@ -38,10 +45,11 @@ const COMMUNITY_NAV_ITEMS = [
 // entry for moderator/admin/super_admin accounts; a plain farmer never
 // sees it, though the route itself also gates defensively.
 const STAFF_ROLES = new Set(['moderator', 'admin', 'super_admin']);
-const MODERATION_NAV_ITEM = { to: '/moderation', label: 'قائمة الإشراف', icon: ShieldAlert };
+const MODERATION_NAV_ITEM = { to: '/moderation', key: 'moderation.title', icon: ShieldAlert };
 
 export default function Sidebar({ mobile = false, onNavigate }) {
   const { activeFarm, activeFarmId, farms, setActiveFarmId, user } = useAuth();
+  const { t } = useLocale();
 
   // Unread community-notification count, polled every 30s — same
   // pattern as the rest of the app's polling (see src/hooks.js). Only
@@ -77,7 +85,7 @@ export default function Sidebar({ mobile = false, onNavigate }) {
             }
           >
             <item.icon size={20} strokeWidth={2} />
-            {item.label === 'Dashboard' ? 'Home' : item.label}
+            {item.key === 'dashboard' ? t('nav.home') : t(`nav.${item.key}`)}
           </NavLink>
         ))}
       </nav>
@@ -85,7 +93,7 @@ export default function Sidebar({ mobile = false, onNavigate }) {
   }
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-brand-100 bg-white px-4 py-7 md:flex">
+    <aside className="hidden w-64 shrink-0 flex-col border-e border-brand-100 bg-white px-4 py-7 md:flex">
       <div className="mb-9 flex items-center px-1">
         {/* Official logo — includes the AgriSmart wordmark + tagline
             baked into the asset itself, used as-is per brand guidelines. */}
@@ -93,25 +101,27 @@ export default function Sidebar({ mobile = false, onNavigate }) {
       </div>
 
       <nav className="flex flex-1 flex-col gap-1">
-        <div className="mb-1 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-300">Monitor</div>
+        <div className="mb-1 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-300">{t('nav.monitor')}</div>
         {NAV_ITEMS.slice(0, 4).map((item) => (
-          <NavItem key={item.to} item={item} onNavigate={onNavigate} />
+          <NavItem key={item.to} item={item} onNavigate={onNavigate} t={t} />
         ))}
 
-        <div className="mb-1 mt-4 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-300">Manage</div>
+        <div className="mb-1 mt-4 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-300">{t('nav.manage')}</div>
         {NAV_ITEMS.slice(4).map((item) => (
-          <NavItem key={item.to} item={item} onNavigate={onNavigate} />
+          <NavItem key={item.to} item={item} onNavigate={onNavigate} t={t} />
         ))}
 
-        <div className="mb-1 mt-4 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-300">Community</div>
+        <div className="mb-1 mt-4 px-3 text-[10px] font-bold uppercase tracking-widest text-slate-300">{t('nav.community')}</div>
         {COMMUNITY_NAV_ITEMS.map((item) => (
-          <NavItem key={item.to} item={item} onNavigate={onNavigate} badge={badges[item.to]} />
+          <NavItem key={item.to} item={item} onNavigate={onNavigate} badge={badges[item.to]} t={t} />
         ))}
-        {user && STAFF_ROLES.has(user.role) && <NavItem item={MODERATION_NAV_ITEM} onNavigate={onNavigate} />}
+        {user && STAFF_ROLES.has(user.role) && <NavItem item={MODERATION_NAV_ITEM} onNavigate={onNavigate} t={t} />}
       </nav>
 
+      <LanguageSwitcher compact />
+
       <div className="mt-3 rounded-xl2 border border-brand-100 bg-brand-50/60 p-3">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-500">Farm</div>
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-500">{t('nav.myFarm')}</div>
         {farms.length > 1 ? (
           <select
             value={activeFarmId || ''}
@@ -123,20 +133,21 @@ export default function Sidebar({ mobile = false, onNavigate }) {
             ))}
           </select>
         ) : (
-          <div className="mt-0.5 truncate text-sm font-bold text-brand-900">{activeFarm?.name || 'No farm yet'}</div>
+          <div className="mt-0.5 truncate text-sm font-bold text-brand-900">{activeFarm?.name || t('nav.farmFallback')}</div>
         )}
         <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-200 text-[11px] font-bold text-brand-800">
             {(activeFarm?.name || 'F').charAt(0)}
           </div>
-          Owner
+          {t('nav.owner')}
         </div>
       </div>
     </aside>
   );
 }
 
-function NavItem({ item, onNavigate, badge }) {
+function NavItem({ item, onNavigate, badge, t }) {
+  const label = item.key.includes('.') ? t(item.key) : t(`nav.${item.key}`);
   return (
     <NavLink
       to={item.to}
@@ -150,9 +161,9 @@ function NavItem({ item, onNavigate, badge }) {
     >
       {({ isActive }) => (
         <>
-          {isActive && <span className="absolute -left-4 h-5 w-1 rounded-r-full bg-brand-600" />}
+          {isActive && <span className="absolute -start-4 h-5 w-1 rounded-e-full bg-brand-600" />}
           <item.icon size={18} />
-          <span className="flex-1">{item.label}</span>
+          <span className="flex-1">{label}</span>
           {badge ? (
             <span
               className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${

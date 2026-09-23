@@ -26,6 +26,7 @@ const logger = require('../../../observability/logger');
 
 const User = require('../../../modules/users/user.model');
 const Farm = require('../../../modules/farms/farm.model');
+const Zone = require('../../../modules/farms/zone.model');
 const Device = require('../../../modules/devices/device.model');
 const RefreshToken = require('../../../modules/auth/refreshToken.model');
 const TelemetryIdempotencyKey = require('../../../modules/telemetry/telemetryIdempotency.model');
@@ -52,6 +53,7 @@ const Review = require('../../../modules/trust/review.model');
 const MODELS = [
   User,
   Farm,
+  Zone,
   Device,
   RefreshToken,
   TelemetryIdempotencyKey,

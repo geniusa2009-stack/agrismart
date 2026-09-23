@@ -4,7 +4,7 @@ import { Bell, CheckCheck } from 'lucide-react';
 import { api } from '../../lib/api';
 import { usePolling } from '../../hooks';
 import { Card, Spinner, EmptyState, ErrorState } from '../../components/ui';
-import { t, formatRelativeTime } from '../../i18n';
+import { useLocale } from '../../i18n/LocaleContext';
 
 // Deep-link destinations by notification type — the notification
 // payload only carries ids (see notification.model.js's header
@@ -36,6 +36,7 @@ const TYPE_LINKS = {
  * Real API-backed only against GET/PATCH /api/v1/notifications.
  */
 export default function Notifications() {
+  const { t, formatRelativeTime, isRtl, locale } = useLocale();
   const [items, setItems] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [error, setError] = useState('');
@@ -78,7 +79,7 @@ export default function Notifications() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-4 text-right" lang="ar">
+    <div dir={isRtl ? 'rtl' : 'ltr'} className={`flex flex-col gap-4 ${isRtl ? 'text-right' : 'text-left'}`} lang={locale === 'en' ? 'en' : 'ar'}>
       <div className="flex items-center justify-between">
         <h1 className="flex items-center gap-2 text-xl font-extrabold text-slate-800">
           <Bell size={20} />

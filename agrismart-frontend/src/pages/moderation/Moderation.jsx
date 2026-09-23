@@ -3,7 +3,7 @@ import { ShieldAlert, Check, X, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { Card, Badge, Spinner, EmptyState, ErrorState } from '../../components/ui';
-import { t, formatRelativeTime } from '../../i18n';
+import { useLocale } from '../../i18n/LocaleContext';
 
 const STATUSES = ['open', 'reviewing', 'resolved', 'dismissed'];
 
@@ -21,6 +21,7 @@ const STAFF_ROLES = new Set(['moderator', 'admin', 'super_admin']);
  * of direct navigation.
  */
 export default function Moderation() {
+  const { t, formatRelativeTime, isRtl, locale } = useLocale();
   const { user } = useAuth();
   const [status, setStatus] = useState('open');
   const [items, setItems] = useState(null);
@@ -53,7 +54,7 @@ export default function Moderation() {
 
   if (!isStaff) {
     return (
-      <div dir="rtl" className="flex flex-col gap-4 text-right" lang="ar">
+      <div dir={isRtl ? 'rtl' : 'ltr'} className={`flex flex-col gap-4 ${isRtl ? 'text-right' : 'text-left'}`} lang={locale === 'en' ? 'en' : 'ar'}>
         <Card>
           <EmptyState title={t('moderation.accessDenied')} />
         </Card>
@@ -62,7 +63,7 @@ export default function Moderation() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-4 text-right" lang="ar">
+    <div dir={isRtl ? 'rtl' : 'ltr'} className={`flex flex-col gap-4 ${isRtl ? 'text-right' : 'text-left'}`} lang={locale === 'en' ? 'en' : 'ar'}>
       <h1 className="flex items-center gap-2 text-xl font-extrabold text-slate-800">
         <ShieldAlert size={20} />
         {t('moderation.title')}

@@ -20,9 +20,11 @@ import Marketplace from './pages/marketplace/Marketplace';
 import Notifications from './pages/notifications/Notifications';
 import Moderation from './pages/moderation/Moderation';
 import { Spinner } from './components/ui';
+import { useLocale } from './i18n/LocaleContext';
 
 export default function App() {
   const { user, loading, activeFarmId } = useAuth();
+  const { t } = useLocale();
 
   // Once a signed-in user has no farm yet (either right after
   // registering, or an existing account that never finished setup),
@@ -40,7 +42,7 @@ export default function App() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Spinner label="Loading AgriSmart…" />
+        <Spinner label={t('common.loading')} />
       </div>
     );
   }

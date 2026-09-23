@@ -35,6 +35,7 @@ const {
   deviceIdParamsSchema,
   heartbeatSchema,
   updateDeviceSchema,
+  assignZoneSchema,
 } = require('./devices.validators');
 
 const router = express.Router();
@@ -82,6 +83,16 @@ router.patch(
   authorizeDeviceFarmAccess('deviceId'),
   validate(updateDeviceSchema),
   controller.rename
+);
+
+// AgriSmart-native data collection contract (crop/zone context).
+router.patch(
+  '/:deviceId/zone',
+  authenticate,
+  validate(deviceIdParamsSchema, 'params'),
+  authorizeDeviceFarmAccess('deviceId'),
+  validate(assignZoneSchema),
+  controller.assignZone
 );
 
 // --- Device-authenticated endpoint (the ESP32 itself calls this) ---

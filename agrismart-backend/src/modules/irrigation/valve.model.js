@@ -35,6 +35,14 @@ const valveSchema = new mongoose.Schema(
   {
     deviceId: { type: String, required: true, index: true },
     farmId: { type: mongoose.Schema.Types.ObjectId, ref: 'Farm', required: true, index: true },
+    // Optional: which physical field/plot this valve irrigates. Added
+    // for the AgriSmart-native data collection contract (see
+    // ai/external/AGRISMART_DATA_COLLECTION_CONTRACT.md). Denormalized
+    // here the same way farmId already is on this model, for the same
+    // reason (query convenience without a join) — never assigned
+    // across farms; irrigation.service.assignValveZone() checks the
+    // zone's farmId matches the valve's own farmId first.
+    zoneId: { type: mongoose.Schema.Types.ObjectId, ref: 'Zone', default: null, index: true },
     name: { type: String, trim: true },
     commandedState: { type: String, enum: Object.values(VALVE_STATE), default: VALVE_STATE.CLOSED },
     confirmedState: { type: String, enum: Object.values(VALVE_STATE), default: VALVE_STATE.UNKNOWN },

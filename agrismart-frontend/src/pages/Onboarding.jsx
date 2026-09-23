@@ -2,14 +2,12 @@ import { useState } from 'react';
 import { Check, ArrowRight, Loader2, Sprout, Cpu, PartyPopper, X, Wifi, ShieldAlert, Copy, CheckCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
+import { useLocale } from '../i18n/LocaleContext';
+import { translateApiError } from '../i18n/errorMessages';
 
 const LOGO_SRC = '/agrismart-logo.png';
 
-const STEPS = [
-  { key: 'farm', label: 'Farm' },
-  { key: 'device', label: 'Device' },
-  { key: 'ready', label: 'Ready' },
-];
+const STEP_KEYS = ['stepFarm', 'stepDevice', 'stepReady'];
 
 /**
  * First-time setup: Farm -> Device (optional) -> Ready. Only real,
@@ -89,10 +87,11 @@ export default function Onboarding({ onFinish }) {
 }
 
 function ProgressIndicator({ step }) {
+  const { t } = useLocale();
   return (
     <div className="flex items-center gap-2">
-      {STEPS.map((s, i) => (
-        <div key={s.key} className="flex items-center gap-2">
+      {STEP_KEYS.map((key, i) => (
+        <div key={key} className="flex items-center gap-2">
           <div
             className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
               i < step ? 'bg-brand-600 text-white' : i === step ? 'bg-brand-100 text-brand-700 ring-2 ring-brand-500' : 'bg-slate-100 text-slate-400'
@@ -101,9 +100,9 @@ function ProgressIndicator({ step }) {
             {i < step ? <Check size={13} /> : i + 1}
           </div>
           <span className={`hidden text-xs font-semibold sm:inline ${i <= step ? 'text-slate-700' : 'text-slate-400'}`}>
-            {s.label}
+            {t(`onboarding.${key}`)}
           </span>
-          {i < STEPS.length - 1 && <div className={`h-px w-6 ${i < step ? 'bg-brand-400' : 'bg-slate-200'}`} />}
+          {i < STEP_KEYS.length - 1 && <div className={`h-px w-6 ${i < step ? 'bg-brand-400' : 'bg-slate-200'}`} />}
         </div>
       ))}
     </div>
@@ -129,6 +128,7 @@ function StepCard({ icon: Icon, title, subtitle, children }) {
 
 function FarmStep({ onCreated }) {
   const { createFarm } = useAuth();
+  const { t } = useLocale();
   const [name, setName] = useState('');
   const [governorate, setGovernorate] = useState('');
   const [village, setVillage] = useState('');
@@ -144,50 +144,50 @@ function FarmStep({ onCreated }) {
       const created = await createFarm({ name, location });
       onCreated(created);
     } catch (err) {
-      setError(err.message || 'Could not create your farm.');
+      setError(translateApiError(err, t) || t('onboarding.farmCreateError'));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <StepCard icon={Sprout} title="Set up your farm" subtitle="Step 1 of 3 — this is the only required step.">
+    <StepCard icon={Sprout} title={t('onboarding.farmTitle')} subtitle={t('onboarding.farmSubtitle')}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
           <label htmlFor="farm-name" className="text-xs font-semibold text-slate-600">
-            Farm name
+            {t('onboarding.farmName')}
           </label>
           <input
             id="farm-name"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Green Valley Farm"
+            placeholder={t('onboarding.farmNamePlaceholder')}
             className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="farm-gov" className="text-xs font-semibold text-slate-600">
-              Governorate
+              {t('onboarding.governorate')}
             </label>
             <input
               id="farm-gov"
               value={governorate}
               onChange={(e) => setGovernorate(e.target.value)}
-              placeholder="Optional"
+              placeholder={t('onboarding.optionalField')}
               className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
           <div>
             <label htmlFor="farm-village" className="text-xs font-semibold text-slate-600">
-              Village
+              {t('onboarding.village')}
             </label>
             <input
               id="farm-village"
               value={village}
               onChange={(e) => setVillage(e.target.value)}
-              placeholder="Optional"
+              placeholder={t('onboarding.optionalField')}
               className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
             />
           </div>
@@ -205,7 +205,7 @@ function FarmStep({ onCreated }) {
           className="mt-1 flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-bold text-white shadow-card transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {busy ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
-          Continue
+          {t('onboarding.continue')}
         </button>
       </form>
     </StepCard>
@@ -213,6 +213,7 @@ function FarmStep({ onCreated }) {
 }
 
 function DeviceStep({ farmId, onDone, onSkip }) {
+  const { t } = useLocale();
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -232,7 +233,7 @@ function DeviceStep({ farmId, onDone, onSkip }) {
       const data = await api.post('/devices', { farmId, name: name || undefined });
       setCreated(data);
     } catch (err) {
-      setError(err.message || 'Could not add the device.');
+      setError(translateApiError(err, t) || t('onboarding.deviceCreateError'));
     } finally {
       setBusy(false);
     }
@@ -256,28 +257,28 @@ function DeviceStep({ farmId, onDone, onSkip }) {
 
   if (created) {
     return (
-      <StepCard icon={Cpu} title="Device added" subtitle="Copy your device secret now — it cannot be shown again.">
+      <StepCard icon={Cpu} title={t('onboarding.deviceAddedTitle')} subtitle={t('onboarding.deviceAddedSubtitle')}>
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-800">
           <div className="flex items-center gap-1.5 font-bold">
-            <ShieldAlert size={14} /> Sensitive credential — do not share this with anyone
+            <ShieldAlert size={14} /> {t('onboarding.sensitiveCredential')}
           </div>
-          <div className="mt-2 font-semibold text-red-700/80">Device ID</div>
+          <div className="mt-2 font-semibold text-red-700/80">{t('onboarding.deviceIdLabel')}</div>
           <div className="mt-0.5 font-mono text-red-900">{created.deviceId}</div>
-          <div className="mt-3 font-semibold text-red-700/80">Device secret</div>
+          <div className="mt-3 font-semibold text-red-700/80">{t('onboarding.deviceSecretLabel')}</div>
           <div className="mt-1 flex items-center gap-2">
             <div className="min-w-0 flex-1 break-all rounded-lg bg-white/70 px-2.5 py-2 font-mono text-red-900">{created.deviceSecret}</div>
             <button
               type="button"
               onClick={handleCopySecret}
-              aria-label="Copy device secret"
+              aria-label={t('onboarding.copy')}
               className="flex shrink-0 items-center gap-1.5 rounded-lg border border-red-300 bg-white px-2.5 py-2 text-[11px] font-bold text-red-700 transition hover:bg-red-100"
             >
               {copied ? <CheckCheck size={13} /> : <Copy size={13} />}
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? t('onboarding.copied') : t('onboarding.copy')}
             </button>
           </div>
           <div className="mt-2 text-[11px] text-red-700/90">
-            Anyone with this secret can authenticate as this device. AgriSmart cannot show it to you again — store it somewhere safe before continuing.
+            {t('onboarding.secretWarning')}
           </div>
         </div>
 
@@ -292,9 +293,9 @@ function DeviceStep({ farmId, onDone, onSkip }) {
             <Wifi size={13} />
           </div>
           <div>
-            <div className="font-bold text-slate-700">Configured in AgriSmart</div>
+            <div className="font-bold text-slate-700">{t('onboarding.configuredInAgriSmart')}</div>
             <div className="mt-0.5 text-slate-500">
-              Physical device connection pending — connect your ESP32 with these credentials any time from the Devices page.
+              {t('onboarding.physicalPending')}
             </div>
           </div>
         </div>
@@ -304,28 +305,28 @@ function DeviceStep({ farmId, onDone, onSkip }) {
           onClick={() => onDone(created)}
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-bold text-white shadow-card transition hover:bg-brand-700"
         >
-          <ArrowRight size={16} /> Continue
+          <ArrowRight size={16} /> {t('onboarding.continue')}
         </button>
       </StepCard>
     );
   }
 
   return (
-    <StepCard icon={Cpu} title="Add your first device" subtitle="Step 2 of 3 — optional, you can do this later.">
+    <StepCard icon={Cpu} title={t('onboarding.deviceTitle')} subtitle={t('onboarding.deviceSubtitle')}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
           <label htmlFor="device-name" className="text-xs font-semibold text-slate-600">
-            Device name
+            {t('onboarding.deviceName')}
           </label>
           <input
             id="device-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. ESP32-A001"
+            placeholder={t('onboarding.deviceNamePlaceholder')}
             className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
           />
           <p className="mt-1.5 text-[11px] text-slate-400">
-            The device ID and connection secret are generated automatically once added.
+            {t('onboarding.deviceNameHint')}
           </p>
         </div>
 
@@ -341,7 +342,7 @@ function DeviceStep({ farmId, onDone, onSkip }) {
             onClick={onSkip}
             className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-500 transition hover:bg-slate-50"
           >
-            <X size={15} /> Skip for now
+            <X size={15} /> {t('onboarding.skipForNow')}
           </button>
           <button
             type="submit"
@@ -349,7 +350,7 @@ function DeviceStep({ farmId, onDone, onSkip }) {
             className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-bold text-white shadow-card transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busy ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
-            Add device
+            {t('onboarding.addDevice')}
           </button>
         </div>
       </form>
@@ -358,35 +359,34 @@ function DeviceStep({ farmId, onDone, onSkip }) {
 }
 
 function ReadyStep({ farm, device, onFinish }) {
+  const { t } = useLocale();
   return (
-    <StepCard icon={PartyPopper} title="AgriSmart configuration complete" subtitle="Step 3 of 3">
+    <StepCard icon={PartyPopper} title={t('onboarding.readyTitle')} subtitle={t('onboarding.readySubtitle')}>
       <div className="flex flex-col gap-2 rounded-xl bg-slate-50 p-4 text-xs text-slate-600">
         <div className="flex items-center justify-between">
-          <span className="font-semibold text-slate-500">Farm</span>
+          <span className="font-semibold text-slate-500">{t('onboarding.summaryFarm')}</span>
           <span className="font-bold text-slate-800">{farm?.name || '—'}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="font-semibold text-slate-500">Device</span>
-          <span className="font-bold text-slate-800">{device ? device.deviceId : 'Not added yet'}</span>
+          <span className="font-semibold text-slate-500">{t('onboarding.summaryDevice')}</span>
+          <span className="font-bold text-slate-800">{device ? device.deviceId : t('onboarding.notAddedYet')}</span>
         </div>
         {device && (
           <div className="flex items-center justify-between">
-            <span className="font-semibold text-slate-500">Physical device</span>
-            <span className="font-bold text-slate-500">Not connected yet</span>
+            <span className="font-semibold text-slate-500">{t('onboarding.summaryPhysicalDevice')}</span>
+            <span className="font-bold text-slate-500">{t('onboarding.notConnectedYet')}</span>
           </div>
         )}
       </div>
       <p className="mt-4 text-xs text-slate-500">
-        {device
-          ? 'Connect your ESP32 with the device secret any time from the Devices page to start sending real telemetry.'
-          : 'You can add a device any time from the Devices page — or run the backend demo to see AgriSmart with live simulated data.'}
+        {device ? t('onboarding.readyNoteWithDevice') : t('onboarding.readyNoteNoDevice')}
       </p>
       <button
         type="button"
         onClick={onFinish}
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-bold text-white shadow-card transition hover:bg-brand-700"
       >
-        <ArrowRight size={16} /> Go to Dashboard
+        <ArrowRight size={16} /> {t('onboarding.goToDashboard')}
       </button>
     </StepCard>
   );

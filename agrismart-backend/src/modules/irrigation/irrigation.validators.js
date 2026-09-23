@@ -53,6 +53,16 @@ const automationSettingsSchema = z
     { message: 'autoOpenBelowPercent must be less than autoCloseAbovePercent.' }
   );
 
+// AgriSmart-native data collection contract: assigns (zoneId string) or
+// clears (zoneId null) this valve's zone. Cross-farm assignment is
+// checked server-side in irrigation.service.assignValveZone(), not
+// here — this only validates shape.
+const assignZoneSchema = z
+  .object({
+    zoneId: z.union([z.string().regex(objectIdRegex, 'Invalid zone id.'), z.null()]),
+  })
+  .strict();
+
 module.exports = {
   createValveSchema,
   valveIdParamsSchema,
@@ -60,4 +70,5 @@ module.exports = {
   closeValveSchema,
   farmIdParamsSchema,
   automationSettingsSchema,
+  assignZoneSchema,
 };

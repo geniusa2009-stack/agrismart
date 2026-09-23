@@ -16,7 +16,7 @@ const acknowledge = asyncHandler(async (req, res) => {
 // is the only path that can mark a command COMPLETED/FAILED, and the
 // only path that updates a valve's confirmedState.
 const reportExecutionResult = asyncHandler(async (req, res) => {
-  const { success, details, valveId, confirmedValveState } = req.body;
+  const { success, details, valveId, confirmedValveState, appliedWaterVolumeLiters } = req.body;
 
   const command = await commandsService.reportExecutionResult(req.params.commandId, req.device.deviceId, {
     success,
@@ -25,6 +25,14 @@ const reportExecutionResult = asyncHandler(async (req, res) => {
 
   if (valveId && confirmedValveState) {
     await irrigationService.confirmValveState(valveId, confirmedValveState);
+  }
+
+  // AgriSmart-native data collection contract: recorded independently
+  // of confirmedValveState above — a device reporting a CLOSE_VALVE
+  // result may include a metered volume even without also touching
+  // confirmedValveState in the same call.
+  if (typeof appliedWaterVolumeLiters === 'number') {
+    await irrigationService.recordAppliedWaterVolume(req.params.commandId, appliedWaterVolumeLiters);
   }
 
   res.status(200).json({ success: true, data: command });

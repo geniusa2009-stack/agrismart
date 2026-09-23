@@ -7,9 +7,10 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { usePolling } from '../hooks';
-import { Card, Badge, EmptyState, DashboardSkeleton, timeAgo } from '../components/ui';
+import { Card, Badge, EmptyState, DashboardSkeleton } from '../components/ui';
 import AiInsightCard from '../components/AiInsightCard';
 import { MoistureAreaChart, DevicesDonut } from '../components/charts';
+import { useLocale } from '../i18n/LocaleContext';
 
 // Matches the backend's own low-moisture alert rule
 // (dashboard.service.js ALERT_THRESHOLDS.SOIL_MOISTURE_LOW_PERCENT) —
@@ -34,19 +35,20 @@ const REQUESTED_RANGE_LABEL = '24h';
 // changes; this only affects the displayed label.
 const SPARSE_READING_THRESHOLD = 10;
 
-function chartRangeLabel(readingCount) {
-  return readingCount > 0 && readingCount <= SPARSE_READING_THRESHOLD ? 'Recent readings' : `${REQUESTED_RANGE_LABEL} range`;
+function chartRangeLabel(readingCount, t) {
+  return readingCount > 0 && readingCount <= SPARSE_READING_THRESHOLD ? t('dashboard.recentReadings') : t('dashboard.rangeLabel24h');
 }
 
-function greeting() {
+function greetingKey() {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
+  if (h < 12) return 'dashboard.goodMorning';
+  if (h < 18) return 'dashboard.goodAfternoon';
+  return 'dashboard.goodEvening';
 }
 
 export default function Dashboard() {
   const { activeFarm, activeFarmId, user } = useAuth();
+  const { t, formatRelativeTime: timeAgoT } = useLocale();
   const displayName = user?.email ? user.email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'there';
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
@@ -95,7 +97,7 @@ export default function Dashboard() {
     }
   }, 3000, [activeFarmId]);
 
-  if (error) return <EmptyState title="Could not load dashboard" sub={error} />;
+  if (error) return <EmptyState title={t('dashboard.couldNotLoad')} sub={error} />;
   if (!summary) return <DashboardSkeleton />;
 
   const primaryDevice = summary.devices[0];
@@ -115,10 +117,10 @@ export default function Dashboard() {
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wide text-brand-500">
-            {greeting()}, {displayName}
+            {t(greetingKey())}, {displayName}
           </div>
           <h1 className="mt-0.5 text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
-            {activeFarm?.name || 'Your Farm'}
+            {activeFarm?.name || t('dashboard.yourFarm')}
           </h1>
         </div>
         <div className="flex items-center gap-2 text-xs">
@@ -126,7 +128,7 @@ export default function Dashboard() {
             <MapPin size={12} />
             {activeFarm?.location?.village || activeFarm?.location?.governorate
               ? `${activeFarm.location.village || ''}${activeFarm.location.village && activeFarm.location.governorate ? ', ' : ''}${activeFarm.location.governorate || ''}`
-              : 'Location not set'}
+              : t('dashboard.locationNotSet')}
           </div>
           <div
             className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-semibold ${
@@ -134,7 +136,7 @@ export default function Dashboard() {
             }`}
           >
             {allOperational ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
-            {allOperational ? 'All Systems Operational' : `${criticalAlerts + summary.deviceCounts.offline} Issue(s)`}
+            {allOperational ? t('dashboard.allSystemsOperational') : t('dashboard.issues', { count: criticalAlerts + summary.deviceCounts.offline })}
           </div>
         </div>
       </div>
@@ -154,34 +156,34 @@ export default function Dashboard() {
       {/* Chart + donut */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card
-          title="Soil Moisture"
+          title={t('dashboard.soilMoisture')}
           subtitle={
             primaryDevice
-              ? `${primaryDevice.name} · ${chartRangeLabel(history.length)} · ${history.length} reading${history.length === 1 ? '' : 's'}`
-              : chartRangeLabel(history.length)
+              ? `${primaryDevice.name} · ${chartRangeLabel(history.length, t)} · ${t('dashboard.reading', { count: history.length })}`
+              : chartRangeLabel(history.length, t)
           }
           className="lg:col-span-2"
         >
           {history.length ? (
             <MoistureAreaChart data={history} commands={recentCommands} />
           ) : (
-            <EmptyState title="No telemetry yet" sub="Run npm run demo to start simulated readings." />
+            <EmptyState title={t('dashboard.noTelemetryYet')} sub={t('dashboard.noTelemetryRunDemo')} />
           )}
         </Card>
         <Card
-          title="Devices"
+          title={t('dashboard.devices')}
           action={
             <Link to="/devices" className="flex items-center gap-1 text-xs font-semibold text-brand-600">
-              View All <ArrowRight size={12} />
+              {t('dashboard.viewAll')} <ArrowRight size={12} className="rtl:rotate-180" />
             </Link>
           }
         >
           <div className="flex items-center justify-around">
             <DevicesDonut online={summary.deviceCounts.online} offline={summary.deviceCounts.offline} maintenance={summary.deviceCounts.maintenance} />
             <div className="flex flex-col gap-2 text-xs font-semibold text-slate-500">
-              <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-brand-500" /> Online <span className="text-slate-800">{summary.deviceCounts.online}</span></div>
-              <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-slate-300" /> Offline <span className="text-slate-800">{summary.deviceCounts.offline}</span></div>
-              <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Maintenance <span className="text-slate-800">{summary.deviceCounts.maintenance}</span></div>
+              <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-brand-500" /> {t('dashboard.online')} <span className="text-slate-800">{summary.deviceCounts.online}</span></div>
+              <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-slate-300" /> {t('dashboard.offline')} <span className="text-slate-800">{summary.deviceCounts.offline}</span></div>
+              <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> {t('dashboard.maintenance')} <span className="text-slate-800">{summary.deviceCounts.maintenance}</span></div>
             </div>
           </div>
           {primaryDevice && (
@@ -190,7 +192,7 @@ export default function Dashboard() {
                 {primaryDevice.online ? <Wifi size={13} className="text-brand-500" /> : <WifiOff size={13} className="text-slate-300" />}
                 {primaryDevice.name}
               </span>
-              <span>Last telemetry {timeAgo(latest?.recordedAt)}</span>
+              <span>{t('dashboard.lastTelemetry', { time: timeAgoT(latest?.recordedAt) })}</span>
             </div>
           )}
         </Card>
@@ -206,10 +208,10 @@ export default function Dashboard() {
         />
 
         <Card
-          title="Alerts"
+          title={t('dashboard.alerts')}
           action={
             <Link to="/alerts" className="flex items-center gap-1 text-xs font-semibold text-brand-600">
-              View All <ArrowRight size={12} />
+              {t('dashboard.viewAll')} <ArrowRight size={12} className="rtl:rotate-180" />
             </Link>
           }
         >
@@ -217,8 +219,8 @@ export default function Dashboard() {
             <div className="flex items-center gap-3 rounded-xl bg-brand-50/60 px-4 py-3.5">
               <CheckCircle2 className="shrink-0 text-brand-500" size={20} />
               <div>
-                <div className="text-xs font-bold text-slate-700">No active alerts</div>
-                <div className="text-[11px] text-slate-500">Your farm is operating normally.</div>
+                <div className="text-xs font-bold text-slate-700">{t('dashboard.noActiveAlerts')}</div>
+                <div className="text-[11px] text-slate-500">{t('dashboard.noActiveAlertsDetail')}</div>
               </div>
             </div>
           ) : (
@@ -254,6 +256,7 @@ export default function Dashboard() {
  * generated or fabricated.
  */
 function FarmStatusInsight({ valve, moisture, latest }) {
+  const { t, formatRelativeTime: timeAgoT } = useLocale();
   const lowThreshold = valve?.automationEnabled ? valve.autoOpenBelowPercent : DEFAULT_LOW_MOISTURE_THRESHOLD;
   const isOpen = valve?.commandedState === 'open';
   const hasData = moisture != null;
@@ -261,29 +264,29 @@ function FarmStatusInsight({ valve, moisture, latest }) {
 
   let icon = Activity;
   let tone = 'brand';
-  let headline = 'Waiting for data';
-  let detail = 'No telemetry has been received yet for this farm.';
+  let headline = t('dashboard.waitingForData');
+  let detail = t('dashboard.waitingForDataDetail');
 
   if (!hasData) {
     icon = Radio;
     tone = 'slate';
-    headline = 'Waiting for telemetry';
-    detail = 'No recent sensor reading is available.';
+    headline = t('dashboard.waitingForTelemetry');
+    detail = t('dashboard.waitingForTelemetryDetail');
   } else if (isOpen) {
     icon = Waves;
     tone = 'accent';
-    headline = 'Irrigation in progress';
-    detail = `${valve.name} valve is open.`;
+    headline = t('dashboard.irrigationInProgress');
+    detail = t('dashboard.valveIsOpen', { valve: valve.name });
   } else if (isDry) {
     icon = AlertTriangle;
     tone = 'amber';
-    headline = 'Irrigation recommended';
-    detail = 'Soil moisture is below the configured threshold.';
+    headline = t('dashboard.irrigationRecommended');
+    detail = t('dashboard.belowThresholdDetail');
   } else {
     icon = ShieldCheck;
     tone = 'brand';
-    headline = 'Conditions are stable';
-    detail = 'Soil moisture is above the irrigation threshold.';
+    headline = t('dashboard.conditionsStable');
+    detail = t('dashboard.aboveThresholdDetail');
   }
 
   const tones = {
@@ -292,22 +295,22 @@ function FarmStatusInsight({ valve, moisture, latest }) {
     amber: { bg: 'bg-amber-50/70', ring: 'bg-amber-500', text: 'text-amber-800' },
     slate: { bg: 'bg-slate-50', ring: 'bg-slate-400', text: 'text-slate-700' },
   };
-  const t = tones[tone];
+  const toneValue = tones[tone];
   const Icon = icon;
 
   return (
-    <div className={`flex items-center gap-4 rounded-xl2 border border-slate-100 ${t.bg} px-5 py-4 shadow-card`}>
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${t.ring} text-white`}>
+    <div className={`flex items-center gap-4 rounded-xl2 border border-slate-100 ${toneValue.bg} px-5 py-4 shadow-card`}>
+      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${toneValue.ring} text-white`}>
         <Icon size={20} />
       </div>
       <div className="min-w-0">
-        <div className={`text-base font-extrabold ${t.text}`}>{headline}</div>
+        <div className={`text-base font-extrabold ${toneValue.text}`}>{headline}</div>
         <div className="mt-0.5 text-xs text-slate-500">{detail}</div>
       </div>
       {latest?.recordedAt && (
-        <div className="ml-auto hidden shrink-0 text-right text-[11px] text-slate-400 sm:block">
-          <div>Updated</div>
-          <div className="font-semibold text-slate-500">{timeAgo(latest.recordedAt)}</div>
+        <div className="ms-auto hidden shrink-0 text-end text-[11px] text-slate-400 sm:block">
+          <div>{t('dashboard.updated')}</div>
+          <div className="font-semibold text-slate-500">{timeAgoT(latest.recordedAt)}</div>
         </div>
       )}
     </div>
@@ -323,50 +326,52 @@ function FarmStatusInsight({ valve, moisture, latest }) {
  * valve state), never invented.
  */
 function KpiStrip({ moisture, moistureThreshold, temperature, ec, valve }) {
-  const moistureStatus = moisture == null ? 'No data' : moisture < (moistureThreshold ?? DEFAULT_LOW_MOISTURE_THRESHOLD) ? 'Low' : moisture > 85 ? 'High' : 'Moderate';
+  const { t } = useLocale();
+  const th = moistureThreshold ?? DEFAULT_LOW_MOISTURE_THRESHOLD;
+  const moistureStatus = moisture == null ? t('dashboard.noData') : moisture < th ? t('dashboard.low') : moisture > 85 ? t('dashboard.high') : t('dashboard.moderate');
   const moistureContext =
     moisture == null
-      ? 'Waiting for a reading'
-      : moisture < (moistureThreshold ?? DEFAULT_LOW_MOISTURE_THRESHOLD)
-        ? `Below ${moistureThreshold ?? DEFAULT_LOW_MOISTURE_THRESHOLD}% threshold`
-        : `Above ${moistureThreshold ?? DEFAULT_LOW_MOISTURE_THRESHOLD}% threshold`;
+      ? t('dashboard.waitingForReading')
+      : moisture < th
+        ? t('dashboard.belowThresholdPct', { pct: th })
+        : t('dashboard.aboveThresholdPct', { pct: th });
 
-  const temperatureStatus = temperature == null ? 'No data' : temperature > 35 ? 'High' : 'Normal';
+  const temperatureStatus = temperature == null ? t('dashboard.noData') : temperature > 35 ? t('dashboard.high') : t('dashboard.normal');
   const isOpen = valve?.commandedState === 'open';
 
   const items = [
     {
       icon: Droplet,
-      label: 'Soil Moisture',
+      label: t('dashboard.soilMoisture'),
       value: moisture != null ? `${moisture}%` : '—',
       status: moistureStatus,
-      statusTone: moisture != null && (moisture < (moistureThreshold ?? DEFAULT_LOW_MOISTURE_THRESHOLD) || moisture > 85) ? 'amber' : 'slate',
+      statusTone: moisture != null && (moisture < th || moisture > 85) ? 'amber' : 'slate',
       context: moistureContext,
       primary: true,
     },
     {
       icon: Thermometer,
-      label: 'Temperature',
+      label: t('dashboard.temperature'),
       value: temperature != null ? `${temperature}°C` : '—',
       status: temperatureStatus,
       statusTone: temperature != null && temperature > 35 ? 'amber' : 'green',
-      context: temperature == null ? 'Waiting for a reading' : temperature > 35 ? 'Above typical range' : 'Within typical range',
+      context: temperature == null ? t('dashboard.waitingForReading') : temperature > 35 ? t('dashboard.aboveTypicalRange') : t('dashboard.withinTypicalRange'),
     },
     {
       icon: FlaskConical,
-      label: 'EC / Salinity',
+      label: t('dashboard.ecSalinity'),
       value: ec != null ? `${ec} dS/m` : '—',
-      status: ec == null ? 'No data' : 'Reading',
+      status: ec == null ? t('dashboard.noData') : t('dashboard.reading'),
       statusTone: 'slate',
-      context: ec == null ? 'Waiting for a reading' : 'From latest sensor reading',
+      context: ec == null ? t('dashboard.waitingForReading') : t('dashboard.fromLatestReading'),
     },
     {
       icon: Waves,
-      label: 'Irrigation',
-      value: !valve ? '—' : isOpen ? 'OPEN' : 'CLOSED',
-      status: !valve ? 'No valve' : isOpen ? 'Running' : 'Idle',
+      label: t('dashboard.irrigation'),
+      value: !valve ? '—' : isOpen ? t('dashboard.open') : t('dashboard.closed'),
+      status: !valve ? t('dashboard.noValve') : isOpen ? t('dashboard.running') : t('dashboard.idle'),
       statusTone: isOpen ? 'green' : 'slate',
-      context: !valve ? 'No valve provisioned' : isOpen ? `${valve.name} valve is open` : `${valve.name} valve is closed`,
+      context: !valve ? t('dashboard.noValveProvisioned') : isOpen ? t('dashboard.valveOpenDetail', { valve: valve.name }) : t('dashboard.valveClosedDetail', { valve: valve.name }),
     },
   ];
 
@@ -381,7 +386,7 @@ function KpiStrip({ moisture, moistureThreshold, temperature, ec, valve }) {
         >
           <div className={`flex items-center gap-1.5 text-[11px] font-semibold ${it.primary ? 'text-brand-600' : 'text-slate-400'}`}>
             <it.icon size={it.primary ? 14 : 13} /> {it.label}
-            {it.primary && <span className="ml-1 rounded-full bg-brand-100 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-brand-700">Key signal</span>}
+            {it.primary && <span className="ms-1 rounded-full bg-brand-100 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-brand-700">{t('dashboard.keySignal')}</span>}
           </div>
           <div className="flex items-baseline gap-2">
             <span className={`font-extrabold text-slate-800 ${it.primary ? 'text-3xl' : 'text-xl'}`}>{it.value}</span>
@@ -395,10 +400,10 @@ function KpiStrip({ moisture, moistureThreshold, temperature, ec, valve }) {
 }
 
 const LIFECYCLE_STAGES = [
-  { key: 'decide', label: 'Decide' },
-  { key: 'command', label: 'Command' },
-  { key: 'execute', label: 'Execute' },
-  { key: 'verify', label: 'Verify' },
+  { key: 'decide', labelKey: 'dashboard.stageDecide' },
+  { key: 'command', labelKey: 'dashboard.stageCommand' },
+  { key: 'execute', labelKey: 'dashboard.stageAct' },
+  { key: 'verify', labelKey: 'dashboard.stageVerify' },
 ];
 
 // Maps the command's real backend status onto the 4-stage Decide ->
@@ -432,10 +437,11 @@ function lifecyclePhase(status) {
  * valve, or no irrigation command has happened yet.
  */
 function IrrigationLifecycle({ valve, moisture, moistureThreshold, latestCommand }) {
+  const { t } = useLocale();
   if (!valve) {
     return (
-      <Card title="Irrigation">
-        <EmptyState title="No valve provisioned" sub="Add a device and valve to control irrigation." />
+      <Card title={t('dashboard.irrigation')}>
+        <EmptyState title={t('dashboard.noValveProvisioned')} sub={t('irrigation.noValvesSub')} />
       </Card>
     );
   }
@@ -445,19 +451,19 @@ function IrrigationLifecycle({ valve, moisture, moistureThreshold, latestCommand
   if (!isIrrigationCommand) {
     const isDry = moisture != null && moistureThreshold != null && moisture < moistureThreshold;
     return (
-      <Card title="Irrigation">
+      <Card title={t('dashboard.irrigation')}>
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-bold text-slate-800">System is idle</div>
+            <div className="text-sm font-bold text-slate-800">{t('dashboard.systemIdle')}</div>
             <div className="mt-1 text-xs text-slate-400">
               {moisture != null && moistureThreshold != null
                 ? isDry
-                  ? `Moisture (${moisture}%) is below the ${moistureThreshold}% threshold — a decision may follow shortly.`
-                  : `Moisture (${moisture}%) is above the ${moistureThreshold}% irrigation threshold.`
-                : 'The valve is currently closed.'}
+                  ? t('dashboard.moistureBelowSoon', { pct: moisture, threshold: moistureThreshold })
+                  : t('dashboard.moistureAbove', { pct: moisture, threshold: moistureThreshold })
+                : t('dashboard.valveClosedNoData')}
             </div>
           </div>
-          <Badge tone="slate">Closed</Badge>
+          <Badge tone="slate">{t('dashboard.closed')}</Badge>
         </div>
       </Card>
     );
@@ -469,22 +475,22 @@ function IrrigationLifecycle({ valve, moisture, moistureThreshold, latestCommand
   const confirmedOpen = valve.confirmedState === 'open';
 
   const stageDetail = [
-    'Moisture below threshold',
-    isOpenCommand ? 'OPEN valve' : 'CLOSE valve',
-    phase >= 2 ? 'Valve acknowledged' : 'Dispatched to device',
+    t('dashboard.understandDryDetail', { pct: moistureThreshold }),
+    isOpenCommand ? t('irrigation.stageRequested') + ' — OPEN' : t('irrigation.stageRequested') + ' — CLOSE',
+    phase >= 2 ? t('irrigation.stageAcknowledged') : t('dashboard.actDispatchedSuffix'),
     failed
-      ? `Command ${latestCommand.status}`
+      ? t('irrigation.commandStatusLabel', { status: latestCommand.status })
       : phase === 3
         ? confirmedOpen
-          ? 'Valve confirmed open'
-          : 'Valve confirmed closed'
-        : 'Awaiting confirmation',
+          ? t('dashboard.verifyOpenDetail')
+          : t('dashboard.verifyClosedDetail')
+        : t('dashboard.verifyAwaitingDetail'),
   ];
 
   return (
     <Card
-      title="Irrigation"
-      subtitle={`${valve.name} · Decide → Command → Execute → Verify`}
+      title={t('dashboard.irrigation')}
+      subtitle={`${valve.name} · ${t('dashboard.lifecycleCaption')}`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-2">
         {LIFECYCLE_STAGES.map((stage, i) => {
@@ -510,13 +516,13 @@ function IrrigationLifecycle({ valve, moisture, moistureThreshold, latestCommand
                     {reached && !isCurrent ? <Check size={11} /> : <span className="text-[10px] font-bold">{i + 1}</span>}
                   </div>
                   <div className={`text-[11px] font-extrabold uppercase tracking-wide ${reached ? 'text-brand-700' : 'text-slate-400'}`}>
-                    {stage.label}
+                    {t(stage.labelKey)}
                   </div>
                 </div>
                 <div className="text-[11px] leading-snug text-slate-500">{reached ? stageDetail[i] : '—'}</div>
               </div>
               {i < LIFECYCLE_STAGES.length - 1 && (
-                <ArrowRight size={14} className={`hidden shrink-0 sm:block ${reached ? 'text-brand-300' : 'text-slate-200'}`} />
+                <ArrowRight size={14} className={`hidden shrink-0 sm:block rtl:rotate-180 ${reached ? 'text-brand-300' : 'text-slate-200'}`} />
               )}
             </div>
           );
@@ -535,6 +541,7 @@ function IrrigationLifecycle({ valve, moisture, moistureThreshold, latestCommand
  * it simply narrates state that already came from the backend.
  */
 function IrrigationJourney({ valve, moisture, latestCommand }) {
+  const { t } = useLocale();
   const lowThreshold = valve?.automationEnabled ? valve.autoOpenBelowPercent : DEFAULT_LOW_MOISTURE_THRESHOLD;
   const highThreshold = valve?.automationEnabled ? valve.autoCloseAbovePercent : null;
 
@@ -553,62 +560,62 @@ function IrrigationJourney({ valve, moisture, latestCommand }) {
     {
       key: 'measure',
       icon: Activity,
-      label: 'Measure',
+      label: t('dashboard.stageMeasure'),
       active: true,
-      detail: hasData ? `Moisture ${moisture}% from live sensor readings.` : 'Waiting for the first telemetry reading.',
+      detail: hasData ? t('dashboard.measureActiveDetail', { pct: moisture }) : t('dashboard.measureIdleDetail'),
     },
     {
       key: 'understand',
       icon: Search,
-      label: 'Understand',
+      label: t('dashboard.stageUnderstand'),
       active: hasData,
       detail: !hasData
-        ? 'No readings yet.'
+        ? t('dashboard.understandIdleDetail')
         : isDry
-          ? `Dry soil detected (below ${lowThreshold}%).`
-          : 'Soil moisture is within the healthy range.',
+          ? t('dashboard.understandDryDetail', { pct: lowThreshold })
+          : t('dashboard.understandOkDetail'),
     },
     {
       key: 'decide',
       icon: Brain,
-      label: 'Decide',
+      label: t('dashboard.stageDecide'),
       active: isDry || commandedOpen || latestIsOpenCommand,
       detail: latestIsOpenCommand
-        ? 'Decision made: open the valve.'
+        ? t('dashboard.decideOpenDetail')
         : latestIsCloseCommand
-          ? 'Decision made: close the valve (moisture recovered).'
+          ? t('dashboard.decideCloseDetail')
           : isDry
-            ? 'Decision pending: dry soil calls for irrigation.'
-            : 'No irrigation decision needed right now.',
+            ? t('dashboard.decidePendingDetail')
+            : t('dashboard.decideNoneDetail'),
     },
     {
       key: 'act',
       icon: Zap,
-      label: 'Act',
+      label: t('dashboard.stageAct'),
       active: commandedOpen,
       detail: commandedOpen
-        ? `OPEN_VALVE command issued${awaitingConfirmation ? ' — dispatched to device' : ''}.`
-        : 'No open command currently in effect.',
+        ? t('dashboard.actOpenDetail', { suffix: awaitingConfirmation ? t('dashboard.actDispatchedSuffix') : '' })
+        : t('dashboard.actNoneDetail'),
     },
     {
       key: 'verify',
       icon: ShieldCheck,
-      label: 'Verify',
+      label: t('dashboard.stageVerify'),
       active: !!valve && !awaitingConfirmation,
       detail: !valve
-        ? 'No valve provisioned yet.'
+        ? t('dashboard.verifyNoneDetail')
         : awaitingConfirmation
-          ? 'Awaiting device confirmation of last command.'
+          ? t('dashboard.verifyAwaitingDetail')
           : confirmedOpen
             ? isRecovered
-              ? 'Moisture recovered — ready to close.'
-              : 'Valve confirmed OPEN by the device.'
-            : 'Valve confirmed CLOSED by the device.',
+              ? t('dashboard.verifyRecoveredDetail')
+              : t('dashboard.verifyOpenDetail')
+            : t('dashboard.verifyClosedDetail'),
     },
   ];
 
   return (
-    <Card title="How AgriSmart Works — Live" action={<span className="text-[11px] font-semibold text-slate-400">Measure → Understand → Decide → Act → Verify</span>}>
+    <Card title={t('dashboard.howItWorks')} action={<span className="text-[11px] font-semibold text-slate-400">{t('dashboard.journeyCaption')}</span>}>
       <div className="flex flex-col gap-3 md:flex-row md:items-stretch md:gap-2">
         {steps.map((step, i) => (
           <div key={step.key} className="flex flex-1 items-center gap-2">
@@ -632,7 +639,7 @@ function IrrigationJourney({ valve, moisture, latestCommand }) {
               <div className="text-[11px] leading-snug text-slate-500">{step.detail}</div>
             </div>
             {i < steps.length - 1 && (
-              <ArrowRight size={16} className={`hidden shrink-0 md:block ${step.active ? 'text-brand-300' : 'text-slate-200'}`} />
+              <ArrowRight size={16} className={`hidden shrink-0 md:block rtl:rotate-180 ${step.active ? 'text-brand-300' : 'text-slate-200'}`} />
             )}
           </div>
         ))}
@@ -642,14 +649,14 @@ function IrrigationJourney({ valve, moisture, latestCommand }) {
 }
 
 const COMMAND_STAGE = {
-  pending: { label: 'Decided', pct: 20 },
-  queued: { label: 'Queued', pct: 35 },
-  sent: { label: 'Dispatched', pct: 55 },
-  acknowledged: { label: 'Acknowledged', pct: 70 },
-  executing: { label: 'Executing', pct: 85 },
-  completed: { label: 'Verified', pct: 100 },
-  failed: { label: 'Failed', pct: 100 },
-  expired: { label: 'Expired', pct: 100 },
+  pending: { labelKey: 'irrigation.stageRequested', pct: 20 },
+  queued: { labelKey: 'irrigation.stageQueued', pct: 35 },
+  sent: { labelKey: 'irrigation.stageSent', pct: 55 },
+  acknowledged: { labelKey: 'irrigation.stageAcknowledged', pct: 70 },
+  executing: { labelKey: 'irrigation.stageExecuting', pct: 85 },
+  completed: { labelKey: 'irrigation.stageCompleted', pct: 100 },
+  failed: { labelKey: 'irrigation.badgeFailed', pct: 100 },
+  expired: { labelKey: 'irrigation.badgeExpired', pct: 100 },
 };
 
 /**
@@ -661,22 +668,25 @@ const COMMAND_STAGE = {
  * EXECUTE -> VERIFY story using only real, already-returned data.
  */
 function RecentActivity({ commands }) {
+  const { t, formatRelativeTime: timeAgoT } = useLocale();
   return (
     <Card
-      title="Recent Irrigation Activity"
-      subtitle="Decide → Command → Execute → Verify"
+      title={t('dashboard.recentIrrigationActivity')}
+      subtitle={t('dashboard.lifecycleCaption')}
     >
       {commands.length === 0 ? (
-        <EmptyState title="No commands yet" sub="Irrigation commands (manual or automatic) will appear here." />
+        <EmptyState title={t('dashboard.noCommandsYet')} sub={t('dashboard.noCommandsYetDetail')} />
       ) : (
         <div className="flex flex-col">
           {commands.slice(0, 6).map((c, i) => {
-            const stage = COMMAND_STAGE[c.status] || { label: c.status, pct: 10 };
+            const stage = COMMAND_STAGE[c.status] || { labelKey: null, pct: 10 };
+            const stageLabel = stage.labelKey ? t(stage.labelKey) : c.status;
             const failed = c.status === 'failed' || c.status === 'expired';
             const isLast = i === Math.min(commands.length, 6) - 1;
+            const typeLabel = c.type === 'open_valve' ? t('irrigation.startIrrigation') : c.type === 'close_valve' ? t('irrigation.stopIrrigation') : c.type.replace(/_/g, ' ');
             return (
               <div key={c.commandId} className="relative flex gap-3 pb-4 last:pb-0">
-                {!isLast && <div className="absolute left-[15px] top-8 h-full w-px bg-slate-100" />}
+                {!isLast && <div className="absolute start-[15px] top-8 h-full w-px bg-slate-100" />}
                 <div
                   className={`z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
                     failed ? 'bg-red-100 text-red-600' : c.status === 'completed' ? 'bg-brand-100 text-brand-700' : 'bg-accent-100 text-accent-700'
@@ -687,12 +697,12 @@ function RecentActivity({ commands }) {
                 <div className="flex-1 pt-0.5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-xs font-bold text-slate-700">
-                      {c.type.replace(/_/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase())}
+                      {typeLabel}
                     </div>
-                    <Badge tone={c.status === 'completed' ? 'green' : failed ? 'red' : 'blue'}>{stage.label}</Badge>
+                    <Badge tone={c.status === 'completed' ? 'green' : failed ? 'red' : 'blue'}>{stageLabel}</Badge>
                   </div>
                   <div className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-400">
-                    <Clock size={11} /> {timeAgo(c.createdAt)} · {c.deviceId}
+                    <Clock size={11} /> {timeAgoT(c.createdAt)} · {c.deviceId}
                   </div>
                   <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-slate-100">
                     <div

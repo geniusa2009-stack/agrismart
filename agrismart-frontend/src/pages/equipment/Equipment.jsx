@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Tractor, Plus, Loader2, X, Star, Flag, User } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Card, Badge, Spinner, EmptyState, ErrorState, ConfirmDialog, ConfirmRow } from '../../components/ui';
-import { t, formatCurrency, formatDate } from '../../i18n';
+import { useLocale } from '../../i18n/LocaleContext';
 
 const EQUIPMENT_TYPES = ['tractor', 'harvester', 'sprayer', 'cultivator', 'irrigation_equipment', 'other'];
 const TABS = ['discover', 'mine', 'rentals'];
@@ -19,10 +19,11 @@ const TABS = ['discover', 'mine', 'rentals'];
  * no backend change needed.
  */
 export default function Equipment() {
+  const { t, formatCurrency, formatDate, isRtl, locale } = useLocale();
   const [tab, setTab] = useState('discover');
 
   return (
-    <div dir="rtl" className="flex flex-col gap-4 text-right" lang="ar">
+    <div dir={isRtl ? 'rtl' : 'ltr'} className={`flex flex-col gap-4 ${isRtl ? 'text-right' : 'text-left'}`} lang={locale === 'en' ? 'en' : 'ar'}>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold text-slate-800">{t('equipment.title')}</h1>
       </div>
@@ -142,7 +143,7 @@ function EquipmentCard({ equipment, onClick }) {
 
   return (
     <Card padded={false} className="overflow-hidden">
-      <button onClick={onClick} className="flex w-full flex-col p-4 text-right">
+      <button onClick={onClick} className="flex w-full flex-col p-4 text-start">
         <div className="flex items-center justify-between">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-600">
             <Tractor size={18} />
@@ -560,7 +561,7 @@ function MyRentals() {
                 </button>
               )}
               {(r.status === 'requested' || r.status === 'accepted') && (
-                <button onClick={() => act(r._id, 'cancel')} className="mt-3 mr-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500">
+                <button onClick={() => act(r._id, 'cancel')} className="mt-3 me-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500">
                   {t('equipment.cancelRequest')}
                 </button>
               )}

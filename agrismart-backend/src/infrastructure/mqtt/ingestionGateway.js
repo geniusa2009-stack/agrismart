@@ -17,7 +17,10 @@ const telemetryService = require('../../modules/telemetry/telemetry.service');
 /**
  * @param {string} deviceId
  * @param {object} payload
- * @param {{ transport: 'https'|'mqtt' }} [meta]
+ * @param {{ transport: 'https'|'mqtt', farmId?: string, zoneId?: string|null }} [meta] -
+ *   farmId/zoneId are passed straight through to telemetryService.ingest()
+ *   unchanged — this file stays a one-line passthrough regardless of
+ *   what meta carries (see telemetry.service.js for how they're used).
  */
 async function ingest(deviceId, payload, meta = { transport: 'https' }) {
   return telemetryService.ingest(deviceId, payload, meta);

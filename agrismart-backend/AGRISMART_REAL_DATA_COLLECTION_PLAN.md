@@ -1,5 +1,15 @@
 # AgriSmart Real Data Collection Plan
 
+**Schema note (added after this plan was written):** the concrete field
+names/units this plan discusses in general terms (irrigation-event log,
+per-zone identifiers, provenance/quality flags) are now backed by a
+FINALIZED, implemented backend schema — see
+`ai/external/AGRISMART_DATA_COLLECTION_CONTRACT.md`'s "Implementation
+status" section and `GAP_ANALYSIS.md`. That implementation does not
+change this plan's core recommendation (a full season of continuous
+AgriSmart-native telemetry is still the real bottleneck, not schema
+fields) and did not retrain, retune, or promote any model.
+
 Status date: 2026-09-11. Both external datasets modeled so far produced
 negative results (see `AI_MODEL_CARD.md`). Neither failure was caused
 by AgriSmart lacking the right SENSOR TYPES — the Python ablation in

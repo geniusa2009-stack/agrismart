@@ -1,5 +1,6 @@
 import { Brain, Sparkles } from 'lucide-react';
 import { Card, Badge } from './ui';
+import { useLocale } from '../i18n/LocaleContext';
 
 /**
  * AiInsightCard
@@ -10,61 +11,88 @@ import { Card, Badge } from './ui';
  *
  * 1. `insight` is null / still loading -> nothing is rendered by the
  *    caller (Dashboard.jsx only mounts this once a valve id exists).
- * 2. `insight.available === false` -> honest "collecting more data"
- *    message, no probability shown.
+ * 2. `insight.available === false` -> honest "insufficient data"
+ *    message, no probability shown, tagged with an "Unavailable"
+ *    state badge.
  * 3. `insight.available === true` -> probability, confidence,
  *    explanation and recommendation exactly as computed server-side,
  *    plus a visible "synthetic" badge whenever the underlying model
  *    was trained on development data rather than real farm telemetry
- *    (ai/README.md "no fake AI" — the UI must not hide this).
+ *    (ai/README.md "no fake AI" — the UI must not hide this). The
+ *    state badge (Recommendation / Advisory / Insufficient data)
+ *    reflects the server's own `insight.recommendation` value — never
+ *    a fabricated category.
  */
+
+// Maps the backend's real recommendation enum to an honest, visible
+// state category. `insufficient_data` here means the model DID run
+// but explicitly reported it couldn't form a confident recommendation
+// — distinct from `insight.available === false`, which means no
+// result was returned at all.
+const STATE_BY_RECOMMENDATION = {
+  recommend_irrigation: 'recommendation',
+  monitor: 'advisory',
+  no_action: 'advisory',
+  insufficient_data: 'insufficientData',
+};
+
+const STATE_TONE = {
+  recommendation: 'blue',
+  advisory: 'amber',
+  insufficientData: 'slate',
+  unavailable: 'slate',
+};
+
 export default function AiInsightCard({ insight }) {
+  const { t } = useLocale();
   if (!insight) return null;
 
   if (!insight.available) {
     return (
       <Card className="p-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-          <Brain className="h-4 w-4" />
-          AI Insight
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <Brain className="h-4 w-4" />
+            {t('aiInsight.title')}
+          </div>
+          <Badge tone={STATE_TONE.unavailable}>{t('aiInsight.stateLabels.unavailable')}</Badge>
         </div>
         <p className="mt-2 text-sm text-slate-500">
-          AI insight unavailable — collecting more data.
+          {t('aiInsight.unavailableMessage')}
         </p>
       </Card>
     );
   }
 
-  const recommendationLabel = {
-    recommend_irrigation: 'Review irrigation',
-    monitor: 'Monitor',
-    no_action: 'No action needed',
-    insufficient_data: 'Collecting more data',
-  }[insight.recommendation] || insight.recommendation;
+  const stateKey = STATE_BY_RECOMMENDATION[insight.recommendation] || 'advisory';
+  const recommendationLabel = t(`aiInsight.recommendationText.${insight.recommendation}`) || insight.recommendation;
 
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
           <Brain className="h-4 w-4" />
-          AI Insight
+          {t('aiInsight.title')}
         </div>
-        {insight.synthetic && (
-          <span title={insight.reason || 'Trained on synthetic development data'}>
-            <Badge tone="amber">
-              <Sparkles className="h-3 w-3 mr-1 inline" />
-              dev model
-            </Badge>
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          <Badge tone={STATE_TONE[stateKey]}>{t(`aiInsight.stateLabels.${stateKey}`)}</Badge>
+          {insight.synthetic && (
+            <span title={insight.reason || t('aiInsight.devModelTooltipDefault')}>
+              <Badge tone="amber">
+                <Sparkles className="h-3 w-3 me-1 inline" />
+                {t('aiInsight.devModelBadge')}
+              </Badge>
+            </span>
+          )}
+        </div>
       </div>
 
       <p className="mt-2 text-sm text-slate-700">
-        Likely irrigation need within the next 3 hours: <strong>{Math.round(insight.probability * 100)}%</strong>
+        {t('aiInsight.probabilityLabel')}: <strong>{Math.round(insight.probability * 100)}%</strong>
       </p>
       <p className="text-xs text-slate-500">
-        Confidence: {insight.confidence}
-        {insight.modelVersion ? ` · model ${insight.modelVersion}` : ''}
+        {t('aiInsight.confidenceLabel')}: {insight.confidence}
+        {insight.modelVersion ? t('aiInsight.modelVersionSuffix', { version: insight.modelVersion }) : ''}
       </p>
 
       {insight.explanation?.length > 0 && (
@@ -75,7 +103,7 @@ export default function AiInsightCard({ insight }) {
         </ul>
       )}
 
-      <p className="mt-3 text-sm font-medium text-slate-800">Recommendation: {recommendationLabel}</p>
+      <p className="mt-3 text-sm font-medium text-slate-800">{t('aiInsight.recommendationLabel')}: {recommendationLabel}</p>
     </Card>
   );
 }

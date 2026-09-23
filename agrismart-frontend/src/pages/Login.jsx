@@ -3,12 +3,15 @@ import { Link } from 'react-router-dom';
 import { Loader2, Eye, EyeOff, ArrowRight, Sprout } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AuthBrandPanel, { LOGO_SRC } from '../components/AuthBrandPanel';
+import { useLocale } from '../i18n/LocaleContext';
+import { translateApiError } from '../i18n/errorMessages';
 
 const DEMO_EMAIL = 'demo-farmer@agrismart.local';
 const DEMO_PASSWORD = 'DemoPassword123!';
 
 export default function Login() {
   const { login } = useAuth();
+  const { t } = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,7 +24,7 @@ export default function Login() {
     try {
       await login(loginEmail, loginPassword);
     } catch (err) {
-      setError(err.message || 'Could not sign in. Check your credentials and try again.');
+      setError(translateApiError(err, t) || t('auth.signInError'));
     } finally {
       setBusy(false);
     }
@@ -50,13 +53,13 @@ export default function Login() {
             <img src={LOGO_SRC} alt="AgriSmart" className="h-16 w-auto object-contain" />
           </div>
 
-          <h2 className="text-xl font-extrabold text-slate-900">Welcome back</h2>
-          <p className="mt-1 text-sm text-slate-500">Sign in to monitor and control your farm.</p>
+          <h2 className="text-xl font-extrabold text-slate-900">{t('auth.welcomeBack')}</h2>
+          <p className="mt-1 text-sm text-slate-500">{t('auth.signInSub')}</p>
 
           <form onSubmit={handleSubmit} className="mt-7 flex flex-col gap-4" noValidate>
             <div>
               <label htmlFor="login-email" className="text-xs font-semibold text-slate-600">
-                Email address
+                {t('auth.emailAddress')}
               </label>
               <input
                 id="login-email"
@@ -72,7 +75,7 @@ export default function Login() {
 
             <div>
               <label htmlFor="login-password" className="text-xs font-semibold text-slate-600">
-                Password
+                {t('auth.password')}
               </label>
               <div className="relative mt-1.5">
                 <input
@@ -83,14 +86,14 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 pr-10 text-sm text-slate-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 pe-10 text-sm text-slate-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                   aria-pressed={showPassword}
-                  className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 outline-none transition hover:text-slate-600 focus-visible:text-brand-600"
+                  className="absolute inset-y-0 end-0 flex items-center px-3 text-slate-400 outline-none transition hover:text-slate-600 focus-visible:text-brand-600"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -109,20 +112,20 @@ export default function Login() {
               className="mt-1 flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-bold text-white shadow-card outline-none transition hover:bg-brand-700 focus-visible:ring-2 focus-visible:ring-brand-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {busy ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
-              Sign in
+              {t('auth.signIn')}
             </button>
           </form>
 
           <p className="mt-5 text-center text-xs text-slate-500">
-            New to AgriSmart?{' '}
+            {t('auth.newToAgriSmart')}{' '}
             <Link to="/register" className="font-bold text-brand-600 hover:text-brand-700">
-              Create your account
+              {t('auth.createYourAccount')}
             </Link>
           </p>
 
           <div className="mt-6 flex items-center gap-3 text-[11px] text-slate-300">
             <div className="h-px flex-1 bg-slate-100" />
-            Demo environment
+            {t('auth.demoEnvironment')}
             <div className="h-px flex-1 bg-slate-100" />
           </div>
 
@@ -132,7 +135,7 @@ export default function Login() {
             disabled={busy}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-500 outline-none transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700 focus-visible:ring-2 focus-visible:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Sprout size={14} /> Use demo account
+            <Sprout size={14} /> {t('auth.useDemoAccount')}
           </button>
         </div>
       </div>

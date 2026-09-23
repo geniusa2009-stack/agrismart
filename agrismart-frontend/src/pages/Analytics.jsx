@@ -3,15 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { Card, Spinner, EmptyState, ErrorState } from '../components/ui';
 import { MoistureAreaChart, MetricLineChart } from '../components/charts';
+import { useLocale } from '../i18n/LocaleContext';
+import { translateApiError } from '../i18n/errorMessages';
 
-const RANGES = [
-  { key: 'live', label: 'Live' },
-  { key: '24h', label: '24 Hours' },
-  { key: '7d', label: '7 Days' },
-  { key: '30d', label: '30 Days' },
-];
+const RANGE_KEYS = ['live', '24h', '7d', '30d'];
 
 export default function Analytics() {
+  const { t } = useLocale();
   const { activeFarmId } = useAuth();
   const [devices, setDevices] = useState(null);
   const [deviceId, setDeviceId] = useState(null);
@@ -32,11 +30,12 @@ export default function Analytics() {
         setDeviceId((prev) => prev || data[0]?.deviceId || null);
       })
       .catch((err) => {
-        if (!cancelled) setDevicesError(err.message || 'Could not load devices.');
+        if (!cancelled) setDevicesError(translateApiError(err, t) || t('analytics.devicesLoadFailed'));
       });
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFarmId, devicesRetryTick]);
 
   useEffect(() => {
@@ -49,32 +48,33 @@ export default function Analytics() {
         if (!cancelled) setHistory(data);
       })
       .catch((err) => {
-        if (!cancelled) setHistoryError(err.message || 'Could not load telemetry.');
+        if (!cancelled) setHistoryError(translateApiError(err, t) || t('analytics.telemetryLoadFailed'));
       });
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId, range, historyRetryTick]);
 
   if (!devices && devicesError) {
     return (
-      <Card title="Telemetry Analytics">
-        <ErrorState title="Couldn't load devices" sub={devicesError} onRetry={() => setDevicesRetryTick((t) => t + 1)} />
+      <Card title={t('analytics.title')}>
+        <ErrorState title={t('analytics.devicesLoadErrorTitle')} sub={devicesError} onRetry={() => setDevicesRetryTick((n) => n + 1)} />
       </Card>
     );
   }
 
-  if (!devices) return <Spinner label="Loading analytics…" />;
-  if (devices.length === 0) return <EmptyState title="No devices yet" />;
+  if (!devices) return <Spinner label={t('analytics.loading')} />;
+  if (devices.length === 0) return <EmptyState title={t('analytics.noDevicesTitle')} />;
 
   return (
     <Card
-      title="Telemetry Analytics"
+      title={t('analytics.title')}
       action={
         <select
           value={deviceId || ''}
           onChange={(e) => setDeviceId(e.target.value)}
-          aria-label="Select device"
+          aria-label={t('analytics.selectDevice')}
           className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600"
         >
           {devices.map((d) => (
@@ -84,38 +84,38 @@ export default function Analytics() {
       }
     >
       <div className="mb-4 flex gap-1 rounded-xl bg-slate-100 p-1">
-        {RANGES.map((r) => (
+        {RANGE_KEYS.map((r) => (
           <button
-            key={r.key}
-            onClick={() => setRange(r.key)}
+            key={r}
+            onClick={() => setRange(r)}
             className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-bold ${
-              range === r.key ? 'bg-white text-brand-700 shadow-card' : 'text-slate-500'
+              range === r ? 'bg-white text-brand-700 shadow-card' : 'text-slate-500'
             }`}
           >
-            {r.label}
+            {t(`analytics.ranges.${r}`)}
           </button>
         ))}
       </div>
 
       {historyError ? (
-        <ErrorState title="Couldn't load telemetry" sub={historyError} onRetry={() => setHistoryRetryTick((t) => t + 1)} />
+        <ErrorState title={t('analytics.telemetryLoadErrorTitle')} sub={historyError} onRetry={() => setHistoryRetryTick((n) => n + 1)} />
       ) : !history ? (
-        <Spinner label="Loading readings…" />
+        <Spinner label={t('analytics.loadingReadings')} />
       ) : history.length === 0 ? (
-        <EmptyState title="No telemetry in this range" sub="Run npm run demo to generate simulated readings." />
+        <EmptyState title={t('analytics.noTelemetryTitle')} sub={t('analytics.noTelemetrySub')} />
       ) : (
         <div className="flex flex-col gap-6">
           <div>
-            <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Soil Moisture (%)</div>
+            <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">{t('analytics.soilMoisture')}</div>
             <MoistureAreaChart data={history} height={200} />
           </div>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Temperature (°C)</div>
+              <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">{t('analytics.temperature')}</div>
               <MetricLineChart data={history} dataKey="temperatureCelsius" unit="°C" color="#f97316" />
             </div>
             <div>
-              <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">EC / Salinity (dS/m)</div>
+              <div className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">{t('analytics.ecSalinity')}</div>
               <MetricLineChart data={history} dataKey="soilSalinityPpt" unit=" dS/m" color="#17ada6" />
             </div>
           </div>

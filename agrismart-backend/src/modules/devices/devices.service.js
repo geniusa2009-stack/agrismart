@@ -10,6 +10,7 @@
 
 const crypto = require('crypto');
 const devicesRepository = require('./devices.repository');
+const zonesRepository = require('../farms/zones.repository');
 const { generateDeviceSecret, hashDeviceSecret, verifyDeviceSecret } = require('../../security/deviceAuth');
 const { DEVICE_STATUS } = require('./device.model');
 const config = require('../../config');
@@ -88,6 +89,28 @@ async function recordHeartbeat(deviceId, healthPayload) {
 }
 
 /**
+ * AgriSmart-native data collection contract (crop/zone context).
+ * Cross-farm assignment is refused the same way
+ * irrigation.service.assignValveZone() refuses it for valves — a zone
+ * belongs to exactly one farm, and a device must never be pointed at
+ * another farm's zone.
+ */
+async function assignZone(deviceId, zoneId) {
+  const device = await devicesRepository.findByDeviceId(deviceId);
+  if (!device) throw ApiError.notFound('Device not found.');
+
+  if (zoneId) {
+    const zone = await zonesRepository.findByIdPlain(zoneId);
+    if (!zone) throw ApiError.notFound('Zone not found.');
+    if (String(zone.farmId) !== String(device.farmId)) {
+      throw ApiError.conflict('Zone belongs to a different farm than this device.');
+    }
+  }
+
+  return devicesRepository.updateZone(deviceId, zoneId);
+}
+
+/**
  * Derives online/offline status from lastSeenAt vs. the configured
  * threshold — never trusted as a stored, potentially-stale field
  * (Stage 2 section 9).
@@ -107,5 +130,6 @@ module.exports = {
   revokeDevice,
   renameDevice,
   recordHeartbeat,
+  assignZone,
   isOnline,
 };

@@ -46,6 +46,11 @@ const rename = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: { deviceId: device.deviceId, name: device.name } });
 });
 
+const assignZone = asyncHandler(async (req, res) => {
+  const device = await devicesService.assignZone(req.params.deviceId, req.body.zoneId);
+  res.status(200).json({ success: true, data: { deviceId: device.deviceId, zoneId: device.zoneId } });
+});
+
 // Called by the device itself, post authenticateDevice() — req.device
 // is already the verified device.
 const heartbeat = asyncHandler(async (req, res) => {
@@ -53,4 +58,4 @@ const heartbeat = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: { received: true } });
 });
 
-module.exports = { provision, rotateSecret, suspend, activate, revoke, rename, heartbeat };
+module.exports = { provision, rotateSecret, suspend, activate, revoke, rename, assignZone, heartbeat };

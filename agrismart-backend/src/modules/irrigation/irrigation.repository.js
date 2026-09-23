@@ -72,6 +72,35 @@ async function closeIrrigationEvent(eventId, { endedAt, actualDurationSeconds, c
 }
 
 /**
+ * AgriSmart-native data collection contract: records a device-reported
+ * applied water volume against the irrigation event whose CLOSE_VALVE
+ * command this is (matched by closeCommandId, set synchronously in
+ * irrigation.service.closeValve() before the device ever confirms
+ * anything — see that function). Returns null (no-op) if no event
+ * matches this commandId, e.g. the command was never a close command.
+ */
+async function setAppliedWaterVolumeForCloseCommand(commandId, appliedWaterVolumeLiters) {
+  return IrrigationEvent.findOneAndUpdate(
+    { closeCommandId: commandId },
+    { appliedWaterVolumeLiters },
+    { new: true }
+  );
+}
+
+async function updateValveZone(valveId, zoneId) {
+  return Valve.findByIdAndUpdate(valveId, { zoneId }, { new: true });
+}
+
+/**
+ * Used by zones.service.deleteZone()'s conservative delete-guard (same
+ * "refuse to delete a referenced parent" philosophy as
+ * farms.service.deleteFarm).
+ */
+async function countValvesByZoneId(zoneId) {
+  return Valve.countDocuments({ zoneId });
+}
+
+/**
  * Recent irrigation events for a valve — powers the dashboard's
  * "irrigation history" chart/list. Read-only, most recent first.
  */
@@ -117,6 +146,9 @@ module.exports = {
   createIrrigationEvent,
   findOpenIrrigationEvent,
   closeIrrigationEvent,
+  setAppliedWaterVolumeForCloseCommand,
+  updateValveZone,
+  countValvesByZoneId,
   findRecentEventsForValve,
   findRecentEventsForFarm,
   getTodayUsageSeconds,

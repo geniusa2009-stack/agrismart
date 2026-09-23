@@ -29,4 +29,19 @@ const updateDeviceSchema = z
   })
   .strict();
 
-module.exports = { provisionDeviceSchema, deviceIdParamsSchema, heartbeatSchema, updateDeviceSchema };
+// AgriSmart-native data collection contract: assigns (zoneId string) or
+// clears (zoneId null) this device's zone. Cross-farm assignment is
+// checked server-side in devices.service.assignZone(), not here.
+const assignZoneSchema = z
+  .object({
+    zoneId: z.union([z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid zone id.'), z.null()]),
+  })
+  .strict();
+
+module.exports = {
+  provisionDeviceSchema,
+  deviceIdParamsSchema,
+  heartbeatSchema,
+  updateDeviceSchema,
+  assignZoneSchema,
+};

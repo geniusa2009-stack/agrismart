@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, MapPin, Pencil, UserPlus, UserMinus, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Card, Badge, Spinner, ErrorState } from '../../components/ui';
-import { t, formatDate } from '../../i18n';
+import { useLocale } from '../../i18n/LocaleContext';
 
 /**
  * ملفي الشخصي / farmer profile — real API-backed only. Two entry
@@ -21,6 +21,7 @@ import { t, formatDate } from '../../i18n';
  * what the real API actually supports today, rather than papered over.
  */
 export default function Profile() {
+  const { t, formatDate, isRtl, locale } = useLocale();
   const { userId } = useParams();
   const navigate = useNavigate();
 
@@ -67,7 +68,7 @@ export default function Profile() {
   }
 
   return (
-    <div dir="rtl" className="flex flex-col gap-4 text-right" lang="ar">
+    <div dir={isRtl ? 'rtl' : 'ltr'} className={`flex flex-col gap-4 ${isRtl ? 'text-right' : 'text-left'}`} lang={locale === 'en' ? 'en' : 'ar'}>
       <h1 className="text-xl font-extrabold text-slate-800">{t('community.myProfile')}</h1>
 
       {!profile && loadError && (

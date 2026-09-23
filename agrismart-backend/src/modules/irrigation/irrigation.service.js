@@ -13,6 +13,7 @@
 
 const irrigationRepository = require('./irrigation.repository');
 const farmsRepository = require('../farms/farms.repository');
+const zonesRepository = require('../farms/zones.repository');
 const devicesRepository = require('../devices/devices.repository');
 const devicesService = require('../devices/devices.service');
 const commandsService = require('../commands/commands.service');
@@ -232,12 +233,65 @@ async function confirmValveState(valveId, state) {
   return irrigationRepository.updateConfirmedState(valveId, state);
 }
 
+/**
+ * AgriSmart-native data collection contract: called from
+ * commands.controller.reportExecutionResult() when the reporting
+ * device includes `appliedWaterVolumeLiters` in its execution result.
+ * A no-op (returns null) if commandId doesn't match any irrigation
+ * event's closeCommandId — e.g. it wasn't a CLOSE_VALVE command, or the
+ * event was somehow not found. Never derives/estimates a volume itself
+ * — see irrigationEvent.model.js's header comment for why.
+ */
+async function recordAppliedWaterVolume(commandId, appliedWaterVolumeLiters) {
+  const event = await irrigationRepository.setAppliedWaterVolumeForCloseCommand(commandId, appliedWaterVolumeLiters);
+  if (event) {
+    logger.info(
+      { scope: 'irrigation', irrigationEventId: String(event._id), appliedWaterVolumeLiters },
+      'Applied water volume recorded from device-confirmed execution result.'
+    );
+  }
+  return event;
+}
+
+/**
+ * Assigns (or clears, with zoneId=null) a valve's zone. Cross-farm
+ * assignment is refused: a zone belongs to exactly one farm
+ * (zone.model.js), and a valve must never be pointed at another farm's
+ * zone (same ownership-boundary discipline as every other cross-
+ * reference in this codebase — Stage 2 section 6/11). `valve` is the
+ * already ownership-checked document attached by irrigation.controller.
+ * js's loadValve middleware, same convention as updateAutomationSettings.
+ */
+async function assignValveZone(valve, zoneId) {
+  // `valve` comes from irrigation.controller.js's loadValve middleware,
+  // which loads it via findValveByIdForPrincipal — that query
+  // populates `farmId` (a Farm document, not a bare ObjectId), unlike
+  // devices.service.assignZone's plain findByDeviceId. Compare against
+  // the populated document's own _id, not its stringified object.
+  const valveFarmId = valve.farmId && valve.farmId._id ? valve.farmId._id : valve.farmId;
+
+  if (zoneId) {
+    const zone = await zonesRepository.findByIdPlain(zoneId);
+    if (!zone) {
+      throw new ApiError(404, 'Zone not found.', { code: ErrorCodes.NOT_FOUND });
+    }
+    if (String(zone.farmId) !== String(valveFarmId)) {
+      throw new ApiError(409, 'Zone belongs to a different farm than this valve.', {
+        code: ErrorCodes.IRRIGATION_SAFETY_VIOLATION,
+      });
+    }
+  }
+  return irrigationRepository.updateValveZone(valve._id, zoneId);
+}
+
 module.exports = {
   createValve,
   openValve,
   closeValve,
   emergencyStopFarm,
   confirmValveState,
+  recordAppliedWaterVolume,
+  assignValveZone,
   updateAutomationSettings,
   evaluateAutomation,
 };

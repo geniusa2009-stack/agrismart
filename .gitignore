@@ -44,9 +44,12 @@ dist-ssr/
 .~*.docx
 .~*.xlsx
 
-# Known cleanup debt (agrismart-frontend/_to_delete_*) — intentionally
-# left on disk per project instructions, just not tracked.
+# Known cleanup debt (agrismart-frontend/_to_delete_*, agrismart-backend/_to_delete/)
+# — intentionally left on disk per project instructions, just not
+# tracked. Includes ad-hoc local debug/repro scripts that are not part
+# of the real source tree.
 _to_delete_*/
+_to_delete/
 
 # Prior-stage backend backup archives — superseded snapshots of the same
 # codebase; kept on disk for reference, not tracked to avoid duplicating

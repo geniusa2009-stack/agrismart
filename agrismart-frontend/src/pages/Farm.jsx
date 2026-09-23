@@ -4,9 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { usePolling } from '../hooks';
 import { Card, Spinner } from '../components/ui';
+import { useLocale } from '../i18n/LocaleContext';
+import { translateApiError } from '../i18n/errorMessages';
 import CreateFarmForm from '../components/CreateFarmForm';
 
 export default function Farm() {
+  const { t } = useLocale();
   const { activeFarm, activeFarmId, updateFarm, deleteFarm } = useAuth();
   const [summary, setSummary] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -19,7 +22,7 @@ export default function Farm() {
     setSummary(data);
   }, 6000, [activeFarmId]);
 
-  if (!summary) return <Spinner label="Loading farm…" />;
+  if (!summary) return <Spinner label={t('farm.loading')} />;
 
   async function handleDelete() {
     setError('');
@@ -27,7 +30,7 @@ export default function Farm() {
     try {
       await deleteFarm(activeFarmId);
     } catch (err) {
-      setError(err.message || 'Could not delete farm.');
+      setError(translateApiError(err, t) || t('farm.deleteFailed'));
     } finally {
       setDeleting(false);
     }
@@ -54,7 +57,7 @@ export default function Farm() {
                 <div className="text-xs text-slate-400">
                   {activeFarm?.location?.village || activeFarm?.location?.governorate
                     ? `${activeFarm.location.village || ''}${activeFarm.location.village && activeFarm.location.governorate ? ', ' : ''}${activeFarm.location.governorate || ''}`
-                    : 'Location not set'}
+                    : t('farm.locationNotSet')}
                 </div>
               </div>
             </div>
@@ -63,14 +66,14 @@ export default function Farm() {
                 onClick={() => setEditing(true)}
                 className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:border-brand-300 hover:text-brand-700"
               >
-                <Pencil size={14} /> Edit
+                <Pencil size={14} /> {t('farm.edit')}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
                 className="flex items-center gap-1.5 rounded-lg border border-red-100 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-60"
               >
-                {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Delete
+                {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} {t('farm.delete')}
               </button>
             </div>
           </div>
@@ -79,32 +82,36 @@ export default function Farm() {
       </Card>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Card title="Devices">
+        <Card title={t('farm.devices')}>
           <div className="flex items-center gap-2 text-2xl font-extrabold text-slate-800">
             <Cpu size={20} className="text-brand-600" /> {summary.deviceCounts.total}
           </div>
           <div className="mt-1 text-xs text-slate-400">
-            {summary.deviceCounts.online} online · {summary.deviceCounts.offline} offline · {summary.deviceCounts.maintenance} maintenance
+            {t('farm.devicesStatusLine', {
+              online: summary.deviceCounts.online,
+              offline: summary.deviceCounts.offline,
+              maintenance: summary.deviceCounts.maintenance,
+            })}
           </div>
         </Card>
-        <Card title="Valves">
+        <Card title={t('farm.valves')}>
           <div className="flex items-center gap-2 text-2xl font-extrabold text-slate-800">
             <Droplets size={20} className="text-accent-500" /> {summary.valves.length}
           </div>
           <div className="mt-1 text-xs text-slate-400">
-            {summary.valves.filter((v) => v.commandedState === 'open').length} currently open
+            {t('farm.valvesOpenCount', { count: summary.valves.filter((v) => v.commandedState === 'open').length })}
           </div>
         </Card>
       </div>
 
       <Card
-        title="Your Farms"
+        title={t('farm.yourFarms')}
         action={
           <button
             onClick={() => setAdding((v) => !v)}
             className="flex items-center gap-1 text-xs font-semibold text-brand-600"
           >
-            {adding ? <X size={14} /> : <Plus size={14} />} {adding ? 'Cancel' : 'Add Farm'}
+            {adding ? <X size={14} /> : <Plus size={14} />} {adding ? t('farm.cancel') : t('farm.addFarm')}
           </button>
         }
       >
@@ -114,7 +121,7 @@ export default function Farm() {
           </div>
         )}
         <p className="text-xs text-slate-400">
-          Switch between your farms using the selector in the sidebar.
+          {t('farm.switchHint')}
         </p>
       </Card>
     </div>
@@ -122,6 +129,7 @@ export default function Farm() {
 }
 
 function EditFarmForm({ farm, onCancel, onSaved, updateFarm }) {
+  const { t } = useLocale();
   const [name, setName] = useState(farm?.name || '');
   const [governorate, setGovernorate] = useState(farm?.location?.governorate || '');
   const [village, setVillage] = useState(farm?.location?.village || '');
@@ -139,7 +147,7 @@ function EditFarmForm({ farm, onCancel, onSaved, updateFarm }) {
       });
       onSaved();
     } catch (err) {
-      setError(err.message || 'Could not update farm.');
+      setError(translateApiError(err, t) || t('farm.updateFailed'));
     } finally {
       setBusy(false);
     }
@@ -148,7 +156,7 @@ function EditFarmForm({ farm, onCancel, onSaved, updateFarm }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <label className="text-xs font-semibold text-slate-500">
-        Farm name
+        {t('farm.farmName')}
         <input
           required
           value={name}
@@ -158,7 +166,7 @@ function EditFarmForm({ farm, onCancel, onSaved, updateFarm }) {
       </label>
       <div className="grid grid-cols-2 gap-2">
         <label className="text-xs font-semibold text-slate-500">
-          Governorate
+          {t('farm.governorate')}
           <input
             value={governorate}
             onChange={(e) => setGovernorate(e.target.value)}
@@ -166,7 +174,7 @@ function EditFarmForm({ farm, onCancel, onSaved, updateFarm }) {
           />
         </label>
         <label className="text-xs font-semibold text-slate-500">
-          Village
+          {t('farm.village')}
           <input
             value={village}
             onChange={(e) => setVillage(e.target.value)}
@@ -181,10 +189,10 @@ function EditFarmForm({ farm, onCancel, onSaved, updateFarm }) {
           disabled={busy}
           className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white hover:bg-brand-700 disabled:opacity-60"
         >
-          {busy && <Loader2 size={14} className="animate-spin" />} Save
+          {busy && <Loader2 size={14} className="animate-spin" />} {t('farm.save')}
         </button>
         <button type="button" onClick={onCancel} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-500">
-          Cancel
+          {t('farm.cancel')}
         </button>
       </div>
     </form>

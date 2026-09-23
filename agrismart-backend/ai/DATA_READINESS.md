@@ -19,11 +19,35 @@ than inventing a more favorable number.
 
 ## Available features (once real data exists)
 
-From `Telemetry.readings`: `soilMoisturePercent`, `temperatureCelsius`,
-`soilSalinityPpt`. From `IrrigationEvent`: `startedAt`, `endedAt`,
-`actualDurationSeconds`, `plannedDurationSeconds`, `triggeredBy`. From
-`Valve`: per-device `autoOpenBelowPercent` / `autoCloseAbovePercent`
-thresholds (used as the supervised label's threshold, not invented).
+**Updated following the AgriSmart-native data collection contract
+implementation** (see `ai/external/AGRISMART_DATA_COLLECTION_CONTRACT.md`'s
+"Implementation status" section and `GAP_ANALYSIS.md`) — the schema now
+carries more than the three AI feature spaces currently read:
+
+From `Telemetry.readings`: `soilMoisturePercent`, `temperatureCelsius`
+(soil-probe temperature), `soilSalinityPpt`, plus newly added
+`soilEcMicrosiemensPerCm` (raw EC, separate from `soilSalinityPpt`),
+`airTemperatureCelsius` / `relativeHumidityPercent` / `precipitationMm`
+(optional weather context), and `flowMeter.{cumulativeVolumeLiters,
+flowRateLitersPerMinute}` (optional, for devices with an inline flow
+meter). `Telemetry` also now carries `farmId` / `zoneId` (server-derived,
+never client-supplied). From `IrrigationEvent`: `startedAt`, `endedAt`,
+`actualDurationSeconds`, `plannedDurationSeconds`, `triggeredBy`, plus
+newly added `appliedWaterVolumeLiters` (populated only from an explicit
+device-reported value on command-execution confirmation, never
+estimated). From `Valve`: per-device `autoOpenBelowPercent` /
+`autoCloseAbovePercent` thresholds (used as the supervised label's
+threshold, not invented), plus newly added `zoneId`. A new `Zone` model
+(`crop`/`growthStage`/`soilType`/`plantingDate`) now exists for the
+crop/zone context this document's earlier revision noted as entirely
+absent — see `zone.model.js`.
+
+None of this changes the "zero real telemetry exists" conclusion below
+— no physical device has reported through this schema yet. It only
+means that once one does, more of what a future model could use is
+actually captured, and the specific field this document's
+`irrigation_event_next_1h` gap named (`soilSalinityPpt`) has a
+documented path to eventual real coverage.
 
 Derived features implemented in `ai/features/featureEngineering.js`:
 lagged moisture (1h/3h/6h), 1h moisture change, 3h rolling average, 6h

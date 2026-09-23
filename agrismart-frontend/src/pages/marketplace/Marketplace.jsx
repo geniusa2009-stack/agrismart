@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ShoppingBasket, Plus, Loader2, X, Bookmark, BookmarkCheck, Flag, User } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Card, Badge, Spinner, EmptyState, ErrorState, ConfirmDialog, ConfirmRow } from '../../components/ui';
-import { t, formatCurrency } from '../../i18n';
+import { useLocale } from '../../i18n/LocaleContext';
 
 const CATEGORIES = ['seeds', 'fertilizers', 'irrigation_supplies', 'equipment', 'tools', 'products', 'other'];
 const TABS = ['discover', 'mine', 'saved'];
@@ -25,10 +25,11 @@ const TABS = ['discover', 'mine', 'saved'];
  * archived/removed is simply skipped (its detail fetch 404s).
  */
 export default function Marketplace() {
+  const { t, formatCurrency, isRtl, locale } = useLocale();
   const [tab, setTab] = useState('discover');
 
   return (
-    <div dir="rtl" className="flex flex-col gap-4 text-right" lang="ar">
+    <div dir={isRtl ? 'rtl' : 'ltr'} className={`flex flex-col gap-4 ${isRtl ? 'text-right' : 'text-left'}`} lang={locale === 'en' ? 'en' : 'ar'}>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold text-slate-800">{t('marketplace.title')}</h1>
       </div>
@@ -182,7 +183,7 @@ function ListingCard({ listing, initialSaved = false, onContact }) {
 
   return (
     <Card padded={false} className="overflow-hidden">
-      <div className="flex flex-col p-4 text-right">
+      <div className="flex flex-col p-4 text-start">
         <div className="flex items-center justify-between">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-600">
             <ShoppingBasket size={18} />

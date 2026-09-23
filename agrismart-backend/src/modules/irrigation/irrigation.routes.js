@@ -13,6 +13,7 @@ const {
   closeValveSchema,
   farmIdParamsSchema,
   automationSettingsSchema,
+  assignZoneSchema,
 } = require('./irrigation.validators');
 
 const router = express.Router();
@@ -51,6 +52,15 @@ router.patch(
   controller.loadValve,
   validate(automationSettingsSchema),
   controller.updateAutomation
+);
+
+// AgriSmart-native data collection contract (crop/zone context).
+router.patch(
+  '/valves/:valveId/zone',
+  validate(valveIdParamsSchema, 'params'),
+  controller.loadValve,
+  validate(assignZoneSchema),
+  controller.assignZone
 );
 
 // Emergency stop deliberately does NOT go through commandLimiter

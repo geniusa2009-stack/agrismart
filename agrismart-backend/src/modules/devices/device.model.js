@@ -27,6 +27,13 @@ const deviceSchema = new mongoose.Schema(
   {
     deviceId: { type: String, required: true, unique: true, trim: true },
     farmId: { type: mongoose.Schema.Types.ObjectId, ref: 'Farm', required: true, index: true },
+    // Optional: which physical field/plot this device's sensors are
+    // installed in. Added for the AgriSmart-native data collection
+    // contract (see ai/external/AGRISMART_DATA_COLLECTION_CONTRACT.md)
+    // so telemetry can carry crop/zone context. Never assigned across
+    // farms — devices.service.assignZone() checks the zone's farmId
+    // matches the device's own farmId before allowing this to be set.
+    zoneId: { type: mongoose.Schema.Types.ObjectId, ref: 'Zone', default: null, index: true },
     name: { type: String, trim: true },
     deviceSecretHash: { type: String, required: true, select: false },
     status: {

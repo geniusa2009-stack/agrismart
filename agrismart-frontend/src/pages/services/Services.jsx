@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Wrench, Plus, Loader2, X, Star, Flag, User } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Card, Badge, Spinner, EmptyState, ErrorState, ConfirmDialog, ConfirmRow } from '../../components/ui';
-import { t, formatCurrency, formatDate } from '../../i18n';
+import { useLocale } from '../../i18n/LocaleContext';
 
 const SERVICE_TYPES = [
   'agricultural_consultant',
@@ -33,10 +33,11 @@ const TABS = ['discover', 'mine', 'requests'];
  * are server-derived from the listing, never submitted by the client.
  */
 export default function Services() {
+  const { t, formatCurrency, formatDate, isRtl, locale } = useLocale();
   const [tab, setTab] = useState('discover');
 
   return (
-    <div dir="rtl" className="flex flex-col gap-4 text-right" lang="ar">
+    <div dir={isRtl ? 'rtl' : 'ltr'} className={`flex flex-col gap-4 ${isRtl ? 'text-right' : 'text-left'}`} lang={locale === 'en' ? 'en' : 'ar'}>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold text-slate-800">{t('services.title')}</h1>
       </div>
@@ -156,7 +157,7 @@ function ServiceCard({ service, onClick }) {
 
   return (
     <Card padded={false} className="overflow-hidden">
-      <button onClick={onClick} className="flex w-full flex-col p-4 text-right">
+      <button onClick={onClick} className="flex w-full flex-col p-4 text-start">
         <div className="flex items-center justify-between">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-600">
             <Wrench size={18} />
@@ -561,7 +562,7 @@ function MyRequests() {
               {(r.status === 'requested' || r.status === 'accepted' || r.status === 'in_progress') && (
                 <button
                   onClick={() => act(r._id, 'cancel')}
-                  className="mt-3 mr-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500"
+                  className="mt-3 me-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-500"
                 >
                   {t('services.cancelRequest')}
                 </button>

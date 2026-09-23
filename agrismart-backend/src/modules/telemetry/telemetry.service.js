@@ -20,9 +20,16 @@ const MAX_CLOCK_DRIFT_MS = 24 * 60 * 60 * 1000; // 24h — beyond this we flag, 
 /**
  * @param {string} deviceId - already authenticated by authenticateDevice()
  * @param {{ messageId: string, sequenceNumber?: number, deviceReportedAt?: string, readings: object }} payload
+ * @param {{ transport?: 'https'|'mqtt', farmId?: string, zoneId?: string|null }} [meta] -
+ *   `farmId`/`zoneId` come from the authenticated device document
+ *   (req.device.farmId / req.device.zoneId in telemetry.controller.js),
+ *   NEVER from the payload itself — see telemetry.validators.js's
+ *   comment on why those keys are absent from the ingest schema. A
+ *   future MQTT subscriber (ingestionGateway.js's own stated future)
+ *   must resolve and pass these the same way.
  * @returns {Promise<{ stored: boolean, duplicate: boolean }>}
  */
-async function ingest(deviceId, payload) {
+async function ingest(deviceId, payload, meta = {}) {
   metrics.increment('telemetry_messages_received');
 
   const claimed = await telemetryRepository.claimIdempotencyKey(deviceId, payload.messageId);
@@ -54,6 +61,8 @@ async function ingest(deviceId, payload) {
 
   await telemetryRepository.insertReading({
     deviceId,
+    farmId: meta.farmId,
+    zoneId: meta.zoneId,
     messageId: payload.messageId,
     sequenceNumber: payload.sequenceNumber,
     recordedAt,

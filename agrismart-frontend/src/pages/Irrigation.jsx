@@ -6,8 +6,11 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { usePolling } from '../hooks';
-import { Card, Badge, ProgressBar, Spinner, EmptyState, timeAgo } from '../components/ui';
+import { Card, Badge, ProgressBar, Spinner, EmptyState } from '../components/ui';
 import { selectLatestCommand, findMostRecentCompleted } from '../lib/commandSelection';
+import { useLocale } from '../i18n/LocaleContext';
+import { translateApiError } from '../i18n/errorMessages';
+import VoiceCommandPanel from '../components/VoiceCommandPanel';
 
 // Matches the same fallback the Dashboard uses (dashboard.service.js's
 // own ALERT_THRESHOLDS.SOIL_MOISTURE_LOW_PERCENT) when a valve doesn't
@@ -27,12 +30,12 @@ const DURATION_PRESETS = [
 // for either. FAILED/EXPIRED are terminal and rendered separately, not
 // as a step in this forward progression.
 const COMMAND_STAGES = [
-  { key: 'pending', label: 'Requested' },
-  { key: 'queued', label: 'Queued' },
-  { key: 'sent', label: 'Sent' },
-  { key: 'acknowledged', label: 'Acknowledged' },
-  { key: 'executing', label: 'Executing' },
-  { key: 'completed', label: 'Completed' },
+  { key: 'pending', labelKey: 'irrigation.stageRequested' },
+  { key: 'queued', labelKey: 'irrigation.stageQueued' },
+  { key: 'sent', labelKey: 'irrigation.stageSent' },
+  { key: 'acknowledged', labelKey: 'irrigation.stageAcknowledged' },
+  { key: 'executing', labelKey: 'irrigation.stageExecuting' },
+  { key: 'completed', labelKey: 'irrigation.stageCompleted' },
 ];
 
 function commandStagePhase(status) {
@@ -41,16 +44,19 @@ function commandStagePhase(status) {
   return idx; // -1 for failed/expired, handled separately
 }
 
-function commandTypeLabel(type) {
+function commandTypeLabel(type, t) {
+  if (type === 'open_valve') return t('irrigation.startIrrigation');
+  if (type === 'close_valve') return t('irrigation.stopIrrigation');
   return type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 // Absolute local timestamp, shown alongside (not instead of) the
-// existing relative timeAgo() — so the Command Lifecycle card
-// unambiguously identifies WHEN a command was created, not just "x ago".
-function formatAbsoluteTime(dateStr) {
+// existing relative time — so the Command Lifecycle card unambiguously
+// identifies WHEN a command was created, not just "x ago". Uses the
+// active locale so Arabic modes render Arabic month names/digits.
+function formatAbsoluteTime(dateStr, localeTag) {
   if (!dateStr) return '';
-  return new Date(dateStr).toLocaleString(undefined, {
+  return new Date(dateStr).toLocaleString(localeTag, {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
@@ -60,6 +66,8 @@ function formatAbsoluteTime(dateStr) {
 
 export default function Irrigation() {
   const { activeFarmId } = useAuth();
+  const { t, locale, formatRelativeTime: timeAgoT } = useLocale();
+  const localeTag = locale === 'en' ? 'en-US' : 'ar-EG';
   const [valves, setValves] = useState(null);
   const [summary, setSummary] = useState(null);
   const [commands, setCommands] = useState([]);
@@ -91,8 +99,8 @@ export default function Irrigation() {
     }
   }, 4000, [activeFarmId]);
 
-  if (!valves) return <Spinner label="Loading irrigation…" />;
-  if (valves.length === 0) return <EmptyState title="No valves yet" sub="Add a device on the Devices page, then run npm run demo to provision a demo valve." />;
+  if (!valves) return <Spinner label={t('irrigation.loading')} />;
+  if (valves.length === 0) return <EmptyState title={t('irrigation.noValvesTitle')} sub={t('irrigation.noValvesSub')} />;
 
   const valve = valves.find((v) => v.valveId === selectedId) || valves[0];
   const device = summary?.devices?.find((d) => d.deviceId === valve.deviceId) || null;
@@ -140,7 +148,7 @@ export default function Irrigation() {
       // backend, not derived or guessed on the frontend.
       setLastOpenResult({ deviceOnline: result.deviceOnline, at: Date.now() });
     } catch (err) {
-      setError(err.message);
+      setError(translateApiError(err, t));
     } finally {
       setBusy(false);
       setConfirmAction(null);
@@ -159,7 +167,7 @@ export default function Irrigation() {
       await api.post(`/irrigation/valves/${valve.valveId}/close`, { idempotencyKey });
       setLastOpenResult(null);
     } catch (err) {
-      setError(err.message);
+      setError(translateApiError(err, t));
     } finally {
       setBusy(false);
     }
@@ -173,7 +181,7 @@ export default function Irrigation() {
       // idempotencyKey field in the validator) — left unchanged.
       await api.post(`/irrigation/farms/${activeFarmId}/emergency-stop`, {});
     } catch (err) {
-      setError(err.message);
+      setError(translateApiError(err, t));
     } finally {
       setEmergencyBusy(false);
       setConfirmAction(null);
@@ -191,23 +199,23 @@ export default function Irrigation() {
           className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-xs font-bold text-red-700 shadow-card hover:bg-red-100 disabled:opacity-60"
         >
           {emergencyBusy ? <Loader2 size={14} className="animate-spin" /> : <ShieldAlert size={14} />}
-          Emergency Stop All Valves
+          {t('irrigation.emergencyStopAll')}
         </button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card title="Valves" className="lg:col-span-1" padded={false}>
+        <Card title={t('irrigation.valves')} className="lg:col-span-1" padded={false}>
           <div className="flex flex-col divide-y divide-slate-50">
             {valves.map((v) => (
               <button
                 key={v.valveId}
                 onClick={() => setSelectedId(v.valveId)}
-                className={`flex items-center justify-between px-5 py-3.5 text-left ${selectedId === v.valveId ? 'bg-brand-50' : 'hover:bg-slate-50'}`}
+                className={`flex items-center justify-between px-5 py-3.5 text-start ${selectedId === v.valveId ? 'bg-brand-50' : 'hover:bg-slate-50'}`}
               >
                 <div className="text-sm font-bold text-slate-800">{v.name}</div>
                 <div className="flex items-center gap-1.5">
-                  {v.automationEnabled && <Badge tone="blue">Auto</Badge>}
-                  <PhysicalStateBadge confirmedState={v.confirmedState} />
+                  {v.automationEnabled && <Badge tone="blue">{t('irrigation.auto')}</Badge>}
+                  <PhysicalStateBadge confirmedState={v.confirmedState} t={t} />
                 </div>
               </button>
             ))}
@@ -215,7 +223,7 @@ export default function Irrigation() {
         </Card>
 
         <div className="flex flex-col gap-4 lg:col-span-2">
-          <Card title="Soil Condition" subtitle={valve.name}>
+          <Card title={t('irrigation.soilCondition')} subtitle={valve.name}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2 text-2xl font-extrabold text-slate-800">
@@ -223,18 +231,27 @@ export default function Irrigation() {
                   {moisture != null ? `${moisture}%` : '—'}
                 </div>
                 <div className="mt-0.5 text-[11px] text-slate-400">
-                  Threshold {lowThreshold}%{latestTelemetry?.recordedAt ? ` · updated ${timeAgo(latestTelemetry.recordedAt)}` : ''}
+                  {t('irrigation.threshold', { pct: lowThreshold })}{latestTelemetry?.recordedAt ? t('irrigation.updatedAt', { time: timeAgoT(latestTelemetry.recordedAt) }) : ''}
                 </div>
               </div>
               <div className={`rounded-lg px-3 py-2 text-xs font-bold ${moisture == null ? 'bg-slate-50 text-slate-400' : isDry ? 'bg-amber-50 text-amber-700' : 'bg-brand-50 text-brand-700'}`}>
-                {moisture == null ? 'Waiting for telemetry' : isDry ? 'Irrigation recommended' : 'Soil moisture is above the irrigation threshold'}
+                {moisture == null ? t('irrigation.waitingForTelemetry') : isDry ? t('irrigation.irrigationRecommended') : t('irrigation.aboveThreshold')}
               </div>
             </div>
           </Card>
 
-          <Card title="Irrigation Control">
+          <VoiceCommandPanel
+            valve={valve}
+            device={device}
+            moisture={moisture}
+            isOpenRequested={valve.commandedState === 'open'}
+            onStart={() => setConfirmAction('open')}
+            onStop={requestClose}
+          />
+
+          <Card title={t('irrigation.irrigationControl')}>
             <div className="flex flex-col gap-5">
-              <ValvePhysicalStatePanel valve={valve} />
+              <ValvePhysicalStatePanel valve={valve} t={t} timeAgoT={timeAgoT} />
 
               {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{error}</div>}
 
@@ -242,20 +259,20 @@ export default function Irrigation() {
                 <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-800">
                   <WifiOff size={16} className="mt-0.5 shrink-0" />
                   <div>
-                    <div className="font-bold">Command queued — device is currently offline.</div>
-                    <div className="mt-0.5">Execution cannot be confirmed until the device reconnects.</div>
+                    <div className="font-bold">{t('irrigation.commandQueuedOffline')}</div>
+                    <div className="mt-0.5">{t('irrigation.executionCannotConfirm')}</div>
                   </div>
                 </div>
               )}
 
-              <IrrigationModeToggle key={valve.valveId} valve={valve} />
+              <IrrigationModeToggle key={valve.valveId} valve={valve} t={t} />
 
               {!valve.automationEnabled && (
                 <>
                   <div>
                     <div className="mb-2 flex items-center justify-between text-xs font-bold uppercase tracking-wide text-slate-400">
-                      <span>Irrigation Duration</span>
-                      <span className="normal-case text-slate-400">Maximum duration: {formatMinutes(valve.maxDurationSeconds)}</span>
+                      <span>{t('irrigation.irrigationDuration')}</span>
+                      <span className="normal-case text-slate-400">{t('irrigation.maxDuration', { duration: formatMinutes(valve.maxDurationSeconds, t) })}</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {availablePresets.map((d) => (
@@ -280,14 +297,14 @@ export default function Irrigation() {
                     }`}
                   >
                     {busy ? <Loader2 size={16} className="animate-spin" /> : <Power size={16} />}
-                    {isOpenRequested ? 'Stop Irrigation' : 'Start Irrigation'}
+                    {isOpenRequested ? t('irrigation.stopIrrigation') : t('irrigation.startIrrigation')}
                   </button>
                 </>
               )}
 
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-500">
-                  <span>Today&apos;s Usage</span>
+                  <span>{t('irrigation.todaysUsage')}</span>
                   <span>{valve.todayUsageSeconds}s / {valve.dailyAllowanceSeconds}s</span>
                 </div>
                 <ProgressBar value={valve.todayUsageSeconds} max={valve.dailyAllowanceSeconds} />
@@ -299,31 +316,34 @@ export default function Irrigation() {
             command={latestCommand}
             valveName={valve.name}
             mostRecentCompleted={mostRecentCompletedCommand}
+            t={t}
+            timeAgoT={timeAgoT}
+            localeTag={localeTag}
           />
         </div>
       </div>
 
       {confirmAction === 'open' && (
         <ConfirmDialog
-          title="Start irrigation?"
-          confirmLabel="Start irrigation"
+          title={t('irrigation.confirmStartTitle')}
+          confirmLabel={t('irrigation.confirmStartLabel')}
           confirmTone="brand"
           busy={busy}
           onCancel={() => setConfirmAction(null)}
           onConfirm={requestOpen}
         >
-          <ConfirmRow label="Valve" value={valve.name} />
-          <ConfirmRow label="Current physical state" value={<PhysicalStateBadge confirmedState={valve.confirmedState} />} />
-          <ConfirmRow label="Requested duration" value={formatMinutes(clampedDuration)} />
-          <ConfirmRow label="Soil moisture" value={moisture != null ? `${moisture}%` : 'No reading yet'} />
+          <ConfirmRow label={t('irrigation.confirmValve')} value={valve.name} />
+          <ConfirmRow label={t('irrigation.confirmCurrentPhysicalState')} value={<PhysicalStateBadge confirmedState={valve.confirmedState} t={t} />} />
+          <ConfirmRow label={t('irrigation.confirmDuration')} value={formatMinutes(clampedDuration, t)} />
+          <ConfirmRow label={t('irrigation.confirmMoisture')} value={moisture != null ? `${moisture}%` : t('irrigation.confirmNoReading')} />
           <ConfirmRow
-            label="Device"
-            value={device ? (device.online ? 'Online' : 'Offline') : 'Unknown'}
+            label={t('irrigation.confirmDevice')}
+            value={device ? (device.online ? t('common.online') : t('common.offline')) : t('irrigation.confirmDeviceUnknown')}
           />
           {valve.confirmedState === 'unknown' && (
             <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-700">
               <AlertTriangle size={13} className="mt-0.5 shrink-0" />
-              Physical state is currently unknown — this device hasn't confirmed a state yet.
+              {t('irrigation.unknownStateWarning')}
             </div>
           )}
         </ConfirmDialog>
@@ -331,16 +351,15 @@ export default function Irrigation() {
 
       {confirmAction === 'emergency' && (
         <ConfirmDialog
-          title="Stop irrigation for all valves?"
-          confirmLabel="Emergency stop"
+          title={t('irrigation.confirmStopTitle')}
+          confirmLabel={t('irrigation.confirmStopLabel')}
           confirmTone="red"
           busy={emergencyBusy}
           onCancel={() => setConfirmAction(null)}
           onConfirm={emergencyStop}
         >
           <p className="text-xs text-slate-600">
-            This will request every valve on this farm to close immediately. Physical confirmation still depends on
-            each device reporting back.
+            {t('irrigation.emergencyStopBody')}
           </p>
         </ConfirmDialog>
       )}
@@ -348,17 +367,17 @@ export default function Irrigation() {
   );
 }
 
-function formatMinutes(seconds) {
+function formatMinutes(seconds, t) {
   if (seconds == null) return '—';
-  if (seconds < 60) return `${seconds} sec`;
+  if (seconds < 60) return `${seconds} ${t('irrigation.secSuffix')}`;
   const minutes = seconds / 60;
-  return `${minutes % 1 === 0 ? minutes : minutes.toFixed(1)} min`;
+  return `${minutes % 1 === 0 ? minutes : minutes.toFixed(1)} ${t('irrigation.minSuffix')}`;
 }
 
-function PhysicalStateBadge({ confirmedState }) {
-  if (confirmedState === 'open') return <Badge tone="green">Confirmed open</Badge>;
-  if (confirmedState === 'closed') return <Badge tone="slate">Confirmed closed</Badge>;
-  return <Badge tone="amber">Unknown</Badge>;
+function PhysicalStateBadge({ confirmedState, t }) {
+  if (confirmedState === 'open') return <Badge tone="green">{t('irrigation.confirmedOpenBadge')}</Badge>;
+  if (confirmedState === 'closed') return <Badge tone="slate">{t('irrigation.confirmedClosedBadge')}</Badge>;
+  return <Badge tone="amber">{t('irrigation.unknownBadge')}</Badge>;
 }
 
 /**
@@ -369,21 +388,21 @@ function PhysicalStateBadge({ confirmedState }) {
  * drives the "physical state" label. When they disagree, the discrepancy
  * is shown explicitly rather than collapsed into one badge.
  */
-function ValvePhysicalStatePanel({ valve }) {
+function ValvePhysicalStatePanel({ valve, t, timeAgoT }) {
   const commanded = valve.commandedState; // 'open' | 'closed'
   const confirmed = valve.confirmedState; // 'open' | 'closed' | 'unknown'
   const inSync = confirmed !== 'unknown' && confirmed === commanded;
 
   const confirmedIcon = confirmed === 'open' ? CheckCircle2 : confirmed === 'closed' ? CheckCircle2 : CircleQuestionMark;
   const confirmedTone = confirmed === 'open' ? 'text-brand-600' : confirmed === 'closed' ? 'text-slate-500' : 'text-amber-500';
-  const confirmedLabel = confirmed === 'open' ? 'Valve confirmed open' : confirmed === 'closed' ? 'Valve confirmed closed' : 'Physical state unknown';
+  const confirmedLabel = confirmed === 'open' ? t('irrigation.valveConfirmedOpen') : confirmed === 'closed' ? t('irrigation.valveConfirmedClosed') : t('irrigation.physicalStateUnknown');
 
   let statusLine = null;
   if (!inSync) {
     statusLine =
       confirmed === 'unknown'
-        ? 'Waiting for device confirmation'
-        : 'Command not yet confirmed';
+        ? t('irrigation.waitingForDeviceConfirmation')
+        : t('irrigation.commandNotYetConfirmed');
   }
 
   const ConfirmedIcon = confirmedIcon;
@@ -396,15 +415,15 @@ function ValvePhysicalStatePanel({ valve }) {
             <ConfirmedIcon size={20} />
           </div>
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Physical state</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t('irrigation.physicalState')}</div>
             <div className={`text-base font-extrabold ${confirmed === 'open' ? 'text-brand-800' : confirmed === 'closed' ? 'text-slate-700' : 'text-amber-700'}`}>
               {confirmedLabel}
             </div>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Requested state</div>
-          <div className="text-base font-extrabold text-slate-700">{commanded === 'open' ? 'OPEN' : 'CLOSED'}</div>
+        <div className="text-end">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t('irrigation.requestedState')}</div>
+          <div className="text-base font-extrabold text-slate-700">{commanded === 'open' ? t('dashboard.open') : t('dashboard.closed')}</div>
         </div>
       </div>
       {statusLine && (
@@ -413,7 +432,7 @@ function ValvePhysicalStatePanel({ valve }) {
         </div>
       )}
       {valve.confirmedStateAt && (
-        <div className="mt-1 text-[11px] text-slate-400">Last confirmed {timeAgo(valve.confirmedStateAt)}</div>
+        <div className="mt-1 text-[11px] text-slate-400">{t('irrigation.lastConfirmed', { time: timeAgoT(valve.confirmedStateAt) })}</div>
       )}
     </div>
   );
@@ -428,11 +447,11 @@ function ValvePhysicalStatePanel({ valve }) {
  * by the device via commands.service.reportExecutionResult) means
  * success.
  */
-function CommandLifecycleCard({ command, valveName, mostRecentCompleted }) {
+function CommandLifecycleCard({ command, valveName, mostRecentCompleted, t, timeAgoT, localeTag }) {
   if (!command) {
     return (
-      <Card title="Command Lifecycle" subtitle={valveName}>
-        <EmptyState title="No commands yet" sub="Open or close this valve to see the command lifecycle here." />
+      <Card title={t('irrigation.commandLifecycle')} subtitle={valveName}>
+        <EmptyState title={t('irrigation.noCommandsYet')} sub={t('irrigation.noCommandsYetSub')} />
       </Card>
     );
   }
@@ -447,19 +466,19 @@ function CommandLifecycleCard({ command, valveName, mostRecentCompleted }) {
 
   return (
     <Card
-      title="Command Lifecycle"
-      subtitle={`${valveName ? `${valveName} · ` : ''}${commandTypeLabel(command.type)} · ${formatAbsoluteTime(command.createdAt)} (${timeAgo(command.createdAt)})`}
+      title={t('irrigation.commandLifecycle')}
+      subtitle={`${valveName ? `${valveName} · ` : ''}${commandTypeLabel(command.type, t)} · ${formatAbsoluteTime(command.createdAt, localeTag)} (${timeAgoT(command.createdAt)})`}
     >
       {failed ? (
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-700">
             <AlertTriangle size={18} className="shrink-0" />
             <div>
-              <div className="font-bold">Command {command.status}</div>
+              <div className="font-bold">{t('irrigation.commandStatusLabel', { status: command.status === 'expired' ? t('irrigation.badgeExpired') : t('irrigation.badgeFailed') })}</div>
               <div className="mt-0.5">
                 {command.status === 'expired'
-                  ? 'The device did not confirm execution before this command expired.'
-                  : 'The device reported this command did not execute successfully.'}
+                  ? t('irrigation.expiredDetail')
+                  : t('irrigation.failedDetail')}
               </div>
             </div>
           </div>
@@ -468,9 +487,9 @@ function CommandLifecycleCard({ command, valveName, mostRecentCompleted }) {
               <CheckCircle2 size={16} className="shrink-0 text-brand-500" />
               <div>
                 <div className="font-bold text-slate-700">
-                  Most recent successful command: {commandTypeLabel(mostRecentCompleted.type)}
+                  {t('irrigation.mostRecentSuccessful', { type: commandTypeLabel(mostRecentCompleted.type, t) })}
                 </div>
-                <div className="mt-0.5">{formatAbsoluteTime(mostRecentCompleted.createdAt)} ({timeAgo(mostRecentCompleted.createdAt)})</div>
+                <div className="mt-0.5">{formatAbsoluteTime(mostRecentCompleted.createdAt, localeTag)} ({timeAgoT(mostRecentCompleted.createdAt)})</div>
               </div>
             </div>
           )}
@@ -487,11 +506,11 @@ function CommandLifecycleCard({ command, valveName, mostRecentCompleted }) {
                     <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${reached ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
                       {reached && !isCurrent ? <Check size={11} /> : <span className="text-[10px] font-bold">{i + 1}</span>}
                     </div>
-                    <div className={`text-[11px] font-extrabold uppercase tracking-wide ${reached ? 'text-brand-700' : 'text-slate-400'}`}>{stage.label}</div>
+                    <div className={`text-[11px] font-extrabold uppercase tracking-wide ${reached ? 'text-brand-700' : 'text-slate-400'}`}>{t(stage.labelKey)}</div>
                   </div>
                 </div>
                 {i < COMMAND_STAGES.length - 1 && (
-                  <ArrowRight size={14} className={`hidden shrink-0 sm:block ${reached ? 'text-brand-300' : 'text-slate-200'}`} />
+                  <ArrowRight size={14} className={`hidden shrink-0 sm:block rtl:rotate-180 ${reached ? 'text-brand-300' : 'text-slate-200'}`} />
                 )}
               </div>
             );
@@ -503,6 +522,7 @@ function CommandLifecycleCard({ command, valveName, mostRecentCompleted }) {
 }
 
 function ConfirmDialog({ title, children, onCancel, onConfirm, confirmLabel, confirmTone = 'brand', busy }) {
+  const { t } = useLocale();
   const toneClasses = confirmTone === 'red' ? 'bg-red-600 hover:bg-red-700' : 'bg-brand-600 hover:bg-brand-700';
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
@@ -520,7 +540,7 @@ function ConfirmDialog({ title, children, onCancel, onConfirm, confirmLabel, con
             disabled={busy}
             className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-60"
           >
-            Cancel
+            {t('irrigation.cancel')}
           </button>
           <button
             onClick={onConfirm}
@@ -545,7 +565,7 @@ function ConfirmRow({ label, value }) {
   );
 }
 
-function IrrigationModeToggle({ valve }) {
+function IrrigationModeToggle({ valve, t }) {
   const [mode, setMode] = useState(valve.automationEnabled ? 'automatic' : 'manual');
   const [settings, setSettings] = useState({
     autoOpenBelowPercent: valve.autoOpenBelowPercent,
@@ -563,7 +583,7 @@ function IrrigationModeToggle({ valve }) {
     try {
       await api.patch(`/irrigation/valves/${valve.valveId}/automation`, { automationEnabled: next === 'automatic' });
     } catch (err) {
-      setError(err.message);
+      setError(translateApiError(err, t));
       setMode(next === 'automatic' ? 'manual' : 'automatic');
     } finally {
       setBusy(false);
@@ -579,7 +599,7 @@ function IrrigationModeToggle({ valve }) {
       await api.patch(`/irrigation/valves/${valve.valveId}/automation`, settings);
       setSaved(true);
     } catch (err) {
-      setError(err.message);
+      setError(translateApiError(err, t));
     } finally {
       setBusy(false);
     }
@@ -588,7 +608,7 @@ function IrrigationModeToggle({ valve }) {
   return (
     <div>
       <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-400">
-        <Settings2 size={13} /> Irrigation Mode
+        <Settings2 size={13} /> {t('irrigation.irrigationMode')}
       </div>
       <div className="flex gap-2">
         <button
@@ -596,14 +616,14 @@ function IrrigationModeToggle({ valve }) {
           disabled={busy}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold ${mode === 'manual' ? 'bg-brand-600 text-white' : 'border border-slate-200 text-slate-500'}`}
         >
-          Manual
+          {t('irrigation.manual')}
         </button>
         <button
           onClick={() => setMode_('automatic')}
           disabled={busy}
           className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold ${mode === 'automatic' ? 'bg-brand-600 text-white' : 'border border-slate-200 text-slate-500'}`}
         >
-          Automatic
+          {t('irrigation.automatic')}
         </button>
       </div>
 
@@ -611,10 +631,10 @@ function IrrigationModeToggle({ valve }) {
 
       {mode === 'automatic' && (
         <form onSubmit={saveSettings} className="mt-3 flex flex-col gap-3 rounded-xl bg-slate-50 p-4">
-          <div className="text-xs font-bold text-slate-600">Automation Settings</div>
+          <div className="text-xs font-bold text-slate-600">{t('irrigation.automationSettings')}</div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <label className="text-[11px] font-semibold text-slate-500">
-              Open below (%)
+              {t('irrigation.openBelowPct')}
               <input
                 type="number" min="0" max="100"
                 value={settings.autoOpenBelowPercent}
@@ -623,7 +643,7 @@ function IrrigationModeToggle({ valve }) {
               />
             </label>
             <label className="text-[11px] font-semibold text-slate-500">
-              Close above (%)
+              {t('irrigation.closeAbovePct')}
               <input
                 type="number" min="0" max="100"
                 value={settings.autoCloseAbovePercent}
@@ -632,7 +652,7 @@ function IrrigationModeToggle({ valve }) {
               />
             </label>
             <label className="text-[11px] font-semibold text-slate-500">
-              Duration (sec)
+              {t('irrigation.durationSeconds')}
               <input
                 type="number" min="1"
                 value={settings.autoDurationSeconds}
@@ -646,12 +666,11 @@ function IrrigationModeToggle({ valve }) {
             disabled={busy}
             className="flex items-center justify-center gap-2 self-start rounded-lg bg-brand-600 px-4 py-2 text-xs font-bold text-white hover:bg-brand-700 disabled:opacity-60"
           >
-            {busy && <Loader2 size={13} className="animate-spin" />} Save Settings
+            {busy && <Loader2 size={13} className="animate-spin" />} {t('irrigation.saveSettings')}
           </button>
-          {saved && <div className="text-[11px] font-semibold text-brand-600">Saved.</div>}
+          {saved && <div className="text-[11px] font-semibold text-brand-600">{t('irrigation.settingsSaved')}</div>}
           <p className="text-[11px] text-slate-400">
-            When automatic, AgriSmart opens this valve when soil moisture drops below the threshold and closes it once
-            it recovers — applied to real telemetry as it arrives.
+            {t('irrigation.automationExplainer')}
           </p>
         </form>
       )}

@@ -1,4 +1,5 @@
 import { Activity, Droplets } from 'lucide-react';
+import { useLocale } from '../i18n/LocaleContext';
 
 // Official AgriSmart logo asset — used as-is, not recreated. See
 // BRAND.md for the token/asset documentation.
@@ -10,6 +11,7 @@ const LOGO_SRC = '/agrismart-logo.png';
  * to a single centered column with the logo shown inline instead).
  */
 export default function AuthBrandPanel() {
+  const { t } = useLocale();
   return (
     <div className="relative hidden w-[45%] shrink-0 overflow-hidden bg-brand-950 lg:flex lg:flex-col lg:justify-between lg:px-12 lg:py-12">
       {/* Restrained abstract field/data-grid visual — CSS only, no stock imagery */}
@@ -36,24 +38,24 @@ export default function AuthBrandPanel() {
 
       <div className="relative animate-[fadeSlideIn_0.7s_ease-out_0.1s_both]">
         <h1 className="max-w-sm text-[28px] font-extrabold leading-tight text-white">
-          Smarter decisions for every field.
+          {t('auth.tagline')}
         </h1>
         <p className="mt-3 max-w-sm text-sm leading-relaxed text-brand-200">
-          Measure your soil. Understand your farm. Irrigate with confidence.
+          {t('auth.taglineSub')}
         </p>
 
         <div className="mt-8 flex items-center gap-6 text-brand-300">
           <div className="flex items-center gap-2 text-xs font-semibold">
-            <Activity size={16} className="text-accent-400" /> Real-time telemetry
+            <Activity size={16} className="text-accent-400" /> {t('auth.featureTelemetry')}
           </div>
           <div className="flex items-center gap-2 text-xs font-semibold">
-            <Droplets size={16} className="text-accent-400" /> Automated irrigation
+            <Droplets size={16} className="text-accent-400" /> {t('auth.featureIrrigation')}
           </div>
         </div>
       </div>
 
       <div className="relative text-[11px] font-medium text-brand-400">
-        &copy; {new Date().getFullYear()} AgriSmart. Smart Farming. Better Future.
+        &copy; {new Date().getFullYear()} {t('auth.copyright')}
       </div>
     </div>
   );

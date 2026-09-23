@@ -3,7 +3,9 @@ import { AlertCircle, AlertTriangle, Info, CheckCircle2, Loader2, RotateCcw } fr
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 import { usePolling } from '../hooks';
-import { Card, Badge, Spinner, EmptyState, ErrorState, timeAgo } from '../components/ui';
+import { Card, Badge, Spinner, EmptyState, ErrorState } from '../components/ui';
+import { useLocale } from '../i18n/LocaleContext';
+import { translateApiError } from '../i18n/errorMessages';
 
 const FILTERS = ['all', 'critical', 'warning', 'notice', 'resolved'];
 
@@ -12,6 +14,7 @@ const TONES = { critical: 'red', warning: 'amber', notice: 'blue' };
 const ICON_COLOR_CLASS = { critical: 'text-red-500', warning: 'text-amber-500', notice: 'text-accent-500' };
 
 export default function Alerts() {
+  const { t, formatRelativeTime: timeAgoT } = useLocale();
   const { activeFarmId } = useAuth();
   const [alerts, setAlerts] = useState(null);
   const [filter, setFilter] = useState('all');
@@ -26,19 +29,19 @@ export default function Alerts() {
       setAlerts(data);
       setLoadError('');
     } catch (err) {
-      setLoadError(err.message || 'Could not load alerts.');
+      setLoadError(translateApiError(err, t) || t('alerts.loadFailed'));
     }
   }, 5000, [activeFarmId, retryTick]);
 
   if (!alerts && loadError) {
     return (
-      <Card title="Alerts">
-        <ErrorState title="Couldn't load alerts" sub={loadError} onRetry={() => setRetryTick((t) => t + 1)} />
+      <Card title={t('alerts.title')}>
+        <ErrorState title={t('alerts.loadErrorTitle')} sub={loadError} onRetry={() => setRetryTick((n) => n + 1)} />
       </Card>
     );
   }
 
-  if (!alerts) return <Spinner label="Loading alerts…" />;
+  if (!alerts) return <Spinner label={t('alerts.loading')} />;
 
   const filtered =
     filter === 'all' ? alerts.filter((a) => !a.acknowledged)
@@ -60,14 +63,14 @@ export default function Alerts() {
       // Leave state as-is (next poll will reconcile) but tell the user
       // the click didn't actually do anything — silently no-oping on a
       // failed acknowledge/reopen would look like a bug.
-      setActionError(err.message || 'Could not update this alert. Please try again.');
+      setActionError(translateApiError(err, t) || t('alerts.actionFailed'));
     } finally {
       setBusyId(null);
     }
   }
 
   return (
-    <Card title="Alerts">
+    <Card title={t('alerts.title')}>
       {actionError && (
         <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-600">{actionError}</div>
       )}
@@ -76,11 +79,11 @@ export default function Alerts() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold capitalize ${
+            className={`flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold ${
               filter === f ? 'bg-white text-brand-700 shadow-card' : 'text-slate-500'
             }`}
           >
-            {f}
+            {t(`alerts.filters.${f}`)}
           </button>
         ))}
       </div>
@@ -88,7 +91,7 @@ export default function Alerts() {
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
           <CheckCircle2 className="text-brand-400" size={28} />
-          <EmptyState title="No alerts" sub="Everything looks good on this farm." />
+          <EmptyState title={t('alerts.emptyTitle')} sub={t('alerts.emptySub')} />
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -101,11 +104,11 @@ export default function Alerts() {
                   <div>
                     <div className="text-sm font-bold text-slate-700">{a.title}</div>
                     <div className="text-xs text-slate-500">{a.message}</div>
-                    <div className="mt-1 text-[11px] text-slate-400">{timeAgo(a.at)} · {a.deviceId}</div>
+                    <div className="mt-1 text-[11px] text-slate-400">{timeAgoT(a.at)} · {a.deviceId}</div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <Badge tone={TONES[a.severity] || 'slate'}>{a.severity}</Badge>
+                  <Badge tone={TONES[a.severity] || 'slate'}>{t(`alerts.severity.${a.severity}`) || a.severity}</Badge>
                   <button
                     onClick={() => toggleAck(a)}
                     disabled={busyId === a.id}
@@ -120,7 +123,7 @@ export default function Alerts() {
                     ) : (
                       <CheckCircle2 size={12} />
                     )}
-                    {a.acknowledged ? 'Reopen' : 'Resolve'}
+                    {a.acknowledged ? t('alerts.reopen') : t('alerts.resolve')}
                   </button>
                 </div>
               </div>

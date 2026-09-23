@@ -13,6 +13,7 @@ import {
   CartesianGrid,
   ReferenceArea,
 } from 'recharts';
+import { useLocale } from '../i18n/LocaleContext';
 
 // --- Real-data-only chart helpers -----------------------------------
 // Everything below formats/sorts/paces the ACTUAL telemetry readings
@@ -150,6 +151,7 @@ function irrigationWindows(commands, points) {
 }
 
 export function MoistureAreaChart({ data, height = 220, commands }) {
+  const { t } = useLocale();
   const sorted = sortByRecordedAt(data);
   const rangeMs = spanMs(sorted);
   const points = sorted.map((d) => ({ ...d, ts: new Date(d.recordedAt).getTime() }));
@@ -189,7 +191,7 @@ export function MoistureAreaChart({ data, height = 220, commands }) {
           tickMargin={4}
         />
         <Tooltip
-          formatter={(v) => [`${v}%`, 'Soil Moisture']}
+          formatter={(v) => [`${v}%`, t('charts.soilMoistureTooltip')]}
           labelFormatter={(ts) => formatTooltipLabel(ts)}
           contentStyle={{ borderRadius: 12, border: '1px solid #eef2f0', fontSize: 12 }}
         />
@@ -244,18 +246,19 @@ export function MetricLineChart({ data, dataKey, unit, color = '#17ada6', domain
 }
 
 export function DevicesDonut({ online, offline, maintenance, size = 140 }) {
+  const { t } = useLocale();
   const total = online + offline + maintenance;
   const data = [
-    { name: 'Online', value: online, color: '#22a86d' },
-    { name: 'Offline', value: offline, color: '#cbd5e1' },
-    { name: 'Maintenance', value: maintenance, color: '#f59e0b' },
+    { name: t('charts.online'), value: online, color: '#22a86d' },
+    { name: t('charts.offline'), value: offline, color: '#cbd5e1' },
+    { name: t('charts.maintenance'), value: maintenance, color: '#f59e0b' },
   ].filter((d) => d.value > 0);
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
-          <Pie data={data.length ? data : [{ name: 'None', value: 1, color: '#e2e8f0' }]} dataKey="value" innerRadius="70%" outerRadius="100%" stroke="none">
+          <Pie data={data.length ? data : [{ name: t('charts.none'), value: 1, color: '#e2e8f0' }]} dataKey="value" innerRadius="70%" outerRadius="100%" stroke="none">
             {(data.length ? data : [{ color: '#e2e8f0' }]).map((entry, i) => (
               <Cell key={i} fill={entry.color} />
             ))}
@@ -264,7 +267,7 @@ export function DevicesDonut({ online, offline, maintenance, size = 140 }) {
       </ResponsiveContainer>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         <div className="text-2xl font-extrabold text-slate-800">{total}</div>
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Total Devices</div>
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{t('charts.totalDevices')}</div>
       </div>
     </div>
   );

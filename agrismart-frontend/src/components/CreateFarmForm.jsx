@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Loader2, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLocale } from '../i18n/LocaleContext';
+import { translateApiError } from '../i18n/errorMessages';
 
 export default function CreateFarmForm({ onCreated }) {
+  const { t } = useLocale();
   const { createFarm } = useAuth();
   const [name, setName] = useState('');
   const [governorate, setGovernorate] = useState('');
@@ -22,7 +25,7 @@ export default function CreateFarmForm({ onCreated }) {
       setVillage('');
       onCreated?.(farm);
     } catch (err) {
-      setError(err.message || 'Could not create farm.');
+      setError(translateApiError(err, t) || t('farm.createFailed'));
     } finally {
       setBusy(false);
     }
@@ -31,18 +34,18 @@ export default function CreateFarmForm({ onCreated }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <label className="text-xs font-semibold text-slate-500">
-        Farm name
+        {t('farm.farmName')}
         <input
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Green Valley Farm"
+          placeholder={t('farm.farmNamePlaceholder')}
           className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
         />
       </label>
       <div className="grid grid-cols-2 gap-2">
         <label className="text-xs font-semibold text-slate-500">
-          Governorate
+          {t('farm.governorate')}
           <input
             value={governorate}
             onChange={(e) => setGovernorate(e.target.value)}
@@ -50,7 +53,7 @@ export default function CreateFarmForm({ onCreated }) {
           />
         </label>
         <label className="text-xs font-semibold text-slate-500">
-          Village
+          {t('farm.village')}
           <input
             value={village}
             onChange={(e) => setVillage(e.target.value)}
@@ -65,7 +68,7 @@ export default function CreateFarmForm({ onCreated }) {
         className="flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-bold text-white shadow-card hover:bg-brand-700 disabled:opacity-60"
       >
         {busy ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-        Create Farm
+        {t('farm.createFarm')}
       </button>
     </form>
   );

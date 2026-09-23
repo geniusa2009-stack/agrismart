@@ -51,6 +51,19 @@ async function updateStatus(deviceId, status) {
   return Device.findOneAndUpdate({ deviceId }, { status }, { new: true });
 }
 
+async function updateZone(deviceId, zoneId) {
+  return Device.findOneAndUpdate({ deviceId }, { zoneId }, { new: true });
+}
+
+/**
+ * Used by zones.service.deleteZone()'s conservative delete-guard (same
+ * "refuse to delete a referenced parent" philosophy as
+ * farms.service.deleteFarm).
+ */
+async function countByZoneId(zoneId) {
+  return Device.countDocuments({ zoneId });
+}
+
 async function recordHeartbeat(deviceId, { batteryPercent, signalStrengthDbm } = {}) {
   const update = { lastSeenAt: new Date() };
   if (batteryPercent !== undefined) update.lastBatteryPercent = batteryPercent;
@@ -67,5 +80,7 @@ module.exports = {
   updateName,
   updateSecretHash,
   updateStatus,
+  updateZone,
+  countByZoneId,
   recordHeartbeat,
 };
