@@ -64,6 +64,15 @@ export default function GlobalChatWidget() {
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
+
+  // Lets any page (e.g. the Simple Mode home screen's "Ask
+  // AgriSmart" button) open this same, single chat widget instead
+  // of building a second entry point — never a second chat UI.
+  useEffect(() => {
+    const openFromEvent = () => setOpen(true);
+    window.addEventListener('agrismart:open-chat', openFromEvent);
+    return () => window.removeEventListener('agrismart:open-chat', openFromEvent);
+  }, []);
   const [messages, setMessages] = useState([]); // { id, role: 'user'|'assistant', content, reasons?, nextStep?, intents?, errorKind? }
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);

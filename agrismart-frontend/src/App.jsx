@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
+import SimpleHome from './pages/SimpleHome';
 import Devices from './pages/Devices';
 import Irrigation from './pages/Irrigation';
 import Analytics from './pages/Analytics';
@@ -86,6 +87,7 @@ export default function App() {
         <div className="mx-auto max-w-7xl px-4 py-6 md:px-8">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/simple" element={<SimpleHome />} />
             <Route path="/farm" element={<Farm />} />
             <Route path="/devices" element={<Devices />} />
             <Route path="/irrigation" element={<Irrigation />} />

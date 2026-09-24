@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { api } from './lib/api';
 
 /**
  * Polls `callback` every `intervalMs`. `callback` may be async; if it
@@ -42,4 +43,64 @@ export function usePolling(callback, intervalMs, deps = []) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
+}
+
+
+/**
+ * useFarmSnapshot — the single source of truth for "what's happening
+ * on the active farm right now": farm/device/valve summary, recent
+ * commands, the primary device's 24h telemetry history, and the
+ * primary valve's AI insight (POST /ai/recommendations/:valveId).
+ * Extracted from Dashboard.jsx so the Advanced dashboard and the
+ * Simple Mode home screen (SimpleHome.jsx) poll the exact same real
+ * endpoints on the exact same 3s cadence and can never show two
+ * different farmers two different numbers for the same farm. Nothing
+ * here is invented — a caller with no valve/device just gets nulls,
+ * same honesty rules AiInsightCard already documents.
+ */
+export function useFarmSnapshot(activeFarmId) {
+  const [summary, setSummary] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [recentCommands, setRecentCommands] = useState([]);
+  const [aiInsight, setAiInsight] = useState(null);
+  const [error, setError] = useState('');
+
+  usePolling(
+    async () => {
+      if (!activeFarmId) return;
+      try {
+        const [data, commands] = await Promise.all([
+          api.get(`/dashboard/farms/${activeFarmId}/summary`),
+          api.get(`/dashboard/farms/${activeFarmId}/commands`),
+        ]);
+        setSummary(data);
+        setRecentCommands(commands);
+        setError('');
+
+        const primaryDeviceId = data.devices[0]?.deviceId;
+        if (primaryDeviceId) {
+          const h = await api.get(`/dashboard/devices/${primaryDeviceId}/telemetry?range=24h`);
+          setHistory(h);
+        }
+
+        const primaryValveId = data.valves[0]?.valveId;
+        if (primaryValveId) {
+          try {
+            const insight = await api.get(`/ai/recommendations/${primaryValveId}`);
+            setAiInsight(insight);
+          } catch {
+            setAiInsight(null);
+          }
+        } else {
+          setAiInsight(null);
+        }
+      } catch (err) {
+        setError(err.message);
+      }
+    },
+    3000,
+    [activeFarmId]
+  );
+
+  return { summary, history, recentCommands, aiInsight, error };
 }

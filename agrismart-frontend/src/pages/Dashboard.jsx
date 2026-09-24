@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Droplet, Thermometer, FlaskConical, Waves, CheckCircle2, AlertTriangle, ArrowRight,
@@ -6,8 +5,7 @@ import {
   Droplets, Sprout, Tractor, Users,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../lib/api';
-import { usePolling } from '../hooks';
+import { useFarmSnapshot } from '../hooks';
 import { Card, Badge, EmptyState, DashboardSkeleton, ActionCard, DecisionCard } from '../components/ui';
 import AiInsightCard from '../components/AiInsightCard';
 import GeminiCopilotCard from '../components/GeminiCopilotCard';
@@ -70,52 +68,7 @@ export default function Dashboard() {
   const { activeFarm, activeFarmId, user } = useAuth();
   const { t, formatRelativeTime: timeAgoT } = useLocale();
   const displayName = user?.email ? user.email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'there';
-  const [summary, setSummary] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [recentCommands, setRecentCommands] = useState([]);
-  const [aiInsight, setAiInsight] = useState(null);
-  const [error, setError] = useState('');
-
-  // 3s polling: the bounded backend demo drives one simulated reading
-  // every ~4s and completes a full irrigation cycle in well under two
-  // minutes, so a snappier refresh makes the MEASURE -> UNDERSTAND ->
-  // DECIDE -> ACT -> VERIFY transitions visible live during a
-  // presentation without over-polling (single farm, single tab).
-  usePolling(async () => {
-    try {
-      const [data, commands] = await Promise.all([
-        api.get(`/dashboard/farms/${activeFarmId}/summary`),
-        api.get(`/dashboard/farms/${activeFarmId}/commands`),
-      ]);
-      setSummary(data);
-      setRecentCommands(commands);
-      setError('');
-
-      const primaryDeviceId = data.devices[0]?.deviceId;
-      if (primaryDeviceId) {
-        const h = await api.get(`/dashboard/devices/${primaryDeviceId}/telemetry?range=24h`);
-        setHistory(h);
-      }
-
-      // AI insight is best-effort and must never break the dashboard:
-      // a valve with too little history or no trained model yet
-      // returns `available: false`, which AiInsightCard renders as
-      // "collecting more data" rather than a crash or blank card.
-      const primaryValveId = data.valves[0]?.valveId;
-      if (primaryValveId) {
-        try {
-          const insight = await api.get(`/ai/recommendations/${primaryValveId}`);
-          setAiInsight(insight);
-        } catch (aiErr) {
-          setAiInsight(null);
-        }
-      } else {
-        setAiInsight(null);
-      }
-    } catch (err) {
-      setError(err.message);
-    }
-  }, 3000, [activeFarmId]);
+  const { summary, history, recentCommands, aiInsight, error } = useFarmSnapshot(activeFarmId);
 
   if (error) return <EmptyState title={t('dashboard.couldNotLoad')} sub={error} />;
   if (!summary) return <DashboardSkeleton />;
@@ -159,6 +112,12 @@ export default function Dashboard() {
             {allOperational ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
             {allOperational ? t('dashboard.allSystemsOperational') : t('dashboard.issues', { count: criticalAlerts + summary.deviceCounts.offline })}
           </div>
+          <Link
+            to="/simple"
+            className="flex items-center gap-1.5 rounded-full border border-brand-100 bg-brand-50 px-3 py-1.5 font-semibold text-brand-700 shadow-card transition-shadow hover:shadow-cardHover"
+          >
+            {t('simpleMode.switchToSimple')}
+          </Link>
         </div>
       </div>
 
