@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import GlobalChatWidget from './components/GlobalChatWidget';
+import SplashScreen from './components/SplashScreen';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Onboarding from './pages/Onboarding';
@@ -27,6 +28,18 @@ export default function App() {
   const { user, loading, activeFarmId } = useAuth();
   const { t } = useLocale();
 
+  // One-time entrance animation on a fresh page load (not on
+  // client-side navigation) — see SplashScreen.jsx's own doc
+  // comment. Gated by sessionStorage so it never re-shows while
+  // routing around within the same tab.
+  const [showSplash, setShowSplash] = useState(() => {
+    try {
+      return !sessionStorage.getItem('agrismart_seen_splash');
+    } catch {
+      return true;
+    }
+  });
+
   // Once a signed-in user has no farm yet (either right after
   // registering, or an existing account that never finished setup),
   // enter the onboarding flow and STAY there — including through its
@@ -39,6 +52,10 @@ export default function App() {
   useEffect(() => {
     if (!loading && user && !activeFarmId) setOnboarding(true);
   }, [loading, user, activeFarmId]);
+
+  if (showSplash) {
+    return <SplashScreen onDone={() => setShowSplash(false)} />;
+  }
 
   if (loading) {
     return (
