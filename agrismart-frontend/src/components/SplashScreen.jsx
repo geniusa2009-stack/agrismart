@@ -73,8 +73,8 @@ export default function SplashScreen({ onDone }) {
         @keyframes as-dot { 0% { opacity: 0; transform: scale(0); } 70% { opacity: 1; transform: scale(1.3); } 100% { opacity: 1; transform: scale(1); } }
 
         .as-outline {
-          stroke-dasharray: 300;
-          stroke-dashoffset: 300;
+          stroke-dasharray: 506;
+          stroke-dashoffset: 506;
           animation: ${reducedMotion ? 'none' : 'as-draw 0.7s ease-out 0.05s forwards'};
         }
         .as-trunk {
@@ -83,13 +83,13 @@ export default function SplashScreen({ onDone }) {
           animation: ${reducedMotion ? 'none' : 'as-draw 0.5s ease-out 1.05s forwards'};
         }
         .as-branch-l {
-          stroke-dasharray: 40;
-          stroke-dashoffset: 40;
+          stroke-dasharray: 46;
+          stroke-dashoffset: 46;
           animation: ${reducedMotion ? 'none' : 'as-draw 0.4s ease-out 1.35s forwards'};
         }
         .as-branch-r {
-          stroke-dasharray: 40;
-          stroke-dashoffset: 40;
+          stroke-dasharray: 46;
+          stroke-dashoffset: 46;
           animation: ${reducedMotion ? 'none' : 'as-draw 0.4s ease-out 1.45s forwards'};
         }
         .as-leaf {
@@ -138,6 +138,7 @@ export default function SplashScreen({ onDone }) {
         {/* Teardrop outline */}
         <path
           className="as-outline"
+         
           d="M100 8 C100 8 168 82 168 132 C168 172 138 202 100 202 C62 202 32 172 32 132 C32 82 100 8 100 8 Z"
           stroke="url(#as-grad-outline)"
           strokeWidth="7"
